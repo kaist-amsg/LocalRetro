@@ -44,18 +44,6 @@ def fix_arom(mol):
 def destereo(template):
     return template.replace('@', '')
         
-def N_MolToSmiles(mol): # '[n:1]1[n:2][n:3][n:4][nH:5]1'
-    smi = Chem.MolToSmiles(mol)
-    if Chem.MolFromSmiles(smi) != None:
-        pass
-    else:
-        prob_ns = re.findall('\[n:\d\]\d', smi)
-        for n in prob_ns:
-            nH = n.replace('[n', '[nH')
-            smi = smi.replace(n, nH)
-            if Chem.MolFromSmiles(smi) != None:
-                break
-    return smi
 
 def clean_smarts(sma):
     mol = fix_arom(Chem.MolFromSmarts(sma.replace(';', '')))
@@ -66,7 +54,6 @@ def clean_smarts(sma):
     except:
         return sma
     
-
 def demap(smi):
     mol = Chem.MolFromSmiles(smi)
     for atom in mol.GetAtoms():
@@ -180,7 +167,7 @@ def export_template(derived_templates, args):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     
-    parser = ArgumentParser('SimpleChiral Extractor')
+    parser = ArgumentParser('Local Template Extractor')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-t', '--threshold', default=1,  help='Template refinement threshold')
     args = parser.parse_args().__dict__

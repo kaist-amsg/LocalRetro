@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser('LocalRetro testing arguements')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-attention', default=True, help='Model use GRA or not')
+    parser.add_argument('-a', '--use-attention', default=False, help='Model use GRA or not')
     parser.add_argument('-k', '--top_num', default=100, help='Num. of predictions to write')
     parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
     args = parser.parse_args().__dict__

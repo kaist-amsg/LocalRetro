@@ -18,7 +18,7 @@ def get_temp_order(smarts, ring_tag = None):
             bond_smarts = bond_smarts.replace(atom, '')
         else:
             bond_smarts = bond_smarts.replace(atom, '')
-            bond_smarts = bond_smarts.replace(bond_smarts[0], '')
+            bond_smarts = ''.join(bond_smarts[1:])
     bond_smarts = bond_smarts.replace('1', '')   
     return temp_order, bond_smarts, atom_dict
 
@@ -49,8 +49,10 @@ def get_ABC_index(temp_order, frag_order):
     for frag in frag_order:
         match_idx = []
         for f in frag:
-            match_idx.append(''.join(temp_order).index(f))
-            
+            if f in ''.join(temp_order):
+                match_idx.append(''.join(temp_order).index(f))
+        if len(match_idx) == 0:
+            continue
         smallest_idx = sorted(match_idx)[0]
         hidden_index += [idx for idx in match_idx if idx != smallest_idx]
         ABC_index.append(smallest_idx)
@@ -131,7 +133,7 @@ def reverse_lg(lg):
         
     return symbol_string
     
-def get_ABC(temp_order, smarts):
+def get_ABC(temp_order, smarts, ring_tag):
     split_smarts = smarts.split('.')
     atom_dict = get_temp_order(smarts)[2]
     frag_order = [get_temp_order(smarts)[0] for smarts in split_smarts]
@@ -146,10 +148,11 @@ def get_ABC(temp_order, smarts):
 
     a = split_smarts[ABC_order[0]].split('[')[0]
     b = split_smarts[ABC_order[-1]].split('[')[0]
-    if len(a) > 1:  
-        atom_dict[AB[0]] = atom_dict[AB[0]] + '(%s)' % reverse_lg(a)
-    if len(b) > 1:
-        atom_dict[AB[-1]] = atom_dict[AB[-1]] + '(%s)' % reverse_lg(b)
+    if AB:
+        if len(a) > 1:  
+            atom_dict[AB[0]] = atom_dict[AB[0]] + '(%s)' % reverse_lg(a)
+        if len(b) > 1:
+            atom_dict[AB[-1]] = atom_dict[AB[-1]] + '(%s)' % reverse_lg(b)
 
     return AB, C, atom_dict
 
@@ -221,15 +224,18 @@ def reconstruct_smarts(reorder_order, bond_match1, bond_match2, atom_dict1, atom
 
 def reconstruct_template(smarts1, smarts2, ring_tag):
     temp_order, bond_dict1, atom_dict1 = get_temp_order(smarts1, ring_tag)
-    AB_order, C, atom_dict2 = get_ABC(temp_order, smarts2)  
-    reorder_order = enumerate_to_match(temp_order, AB_order, C)
-    bond_match1 = get_template_bond1(temp_order, bond_dict1)
-    bond_match2 = get_template_bond2(smarts2)
-    recon_temp1 = smarts1
-    recon_temp2 = reconstruct_smarts(reorder_order, bond_match1, bond_match2, atom_dict1, atom_dict2)
-    if C:
-        recon_temp2 = C + '.' + recon_temp2
-    return recon_temp1 + '>>' + recon_temp2
+    AB_order, C, atom_dict2 = get_ABC(temp_order, smarts2, ring_tag)
+    if AB_order:
+        reorder_order = enumerate_to_match(temp_order, AB_order, C)
+        bond_match1 = get_template_bond1(temp_order, bond_dict1)
+        bond_match2 = get_template_bond2(smarts2)
+        recon_temp1 = smarts1
+        recon_temp2 = reconstruct_smarts(reorder_order, bond_match1, bond_match2, atom_dict1, atom_dict2)
+        if C:
+            recon_temp2 = C + '.' + recon_temp2
+        return recon_temp1 + '>>' + recon_temp2
+    else:
+        return smarts1  + '>>' + smarts2
 
 def include_ring_info(smiles, template, edit_idx, temp_idx, matched_idx):
     mol = Chem.MolFromSmiles(smiles)
@@ -271,9 +277,8 @@ def include_ring_info(smiles, template, edit_idx, temp_idx, matched_idx):
     
     changed_atom_tags = [str(atom.GetAtomMapNum()) for atom in mol.GetAtoms() if atom.GetIdx() in changed_atom_idx]
         
-    mols = mols_from_smiles_list(replace_deuterated(Chem.MolToSmiles(mol)).split('.'))
-    reactant_fragments, intra_only, dimer_only = get_fragments_for_changed_atoms(mols, changed_atom_tags, 
-                radius = 0, expansion = [], category = 'product', local = True)
+    mols = mols_from_smiles_list(replace_deuterated(Chem.MolToSmiles(mol)).split('.'))  
+    reactant_fragments, intra_only, dimer_only = get_fragments_for_changed_atoms(mols, changed_atom_tags, category = 'product')
     
     temp1 = ''.join(canonicalize_template(reactant_fragments))[1:-1]
     temp2 = template.split('>>')[1]

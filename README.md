@@ -5,7 +5,12 @@ Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Y
 Shuan Chen<br>
 
 ## Prerequisites
-Python3<br> Numpy<br> Pytorch<br> rdkit<br> dgl<br> dgllife<br>
+* Python (version >= 3.6) 
+* Numpy (version >= 1.16.4) 
+* PyTorch (version >= 1.0.0) 
+* RDKit (version >= 2019)
+* DGL (version >= 0.5.2)
+* DGLLife (version >= 0.2.6)
 
 ## Publication
 TBD
@@ -68,9 +73,12 @@ python Decode_predictions.py -d USPTO_50K
 ```
 The decoded reactants will be saved at the same directory with raw prediciton named `decoded_prediction.txt`and `decoded_class_prediction.txt`<br>
 
+## Retrosynthesis on desired product
+We also made a python notebook for quick retrosynthesis prediction on desired product at `Retrosynthesis.ipynb`.
+See the README in `./Pretrained_models` to download the models for retrosynthesis prediction.
+
 ## Reproduce the prediction accuracy in the paper
 For fast reproducing the model, we shared the trained model and decoded results at `./Results` directory.
 You can get the prediction accuracy of USPTO_50K by running the python notebook `Top_K_accuracy.ipynb` with changing using GRA or given reaction class.
 
-## Retrosynthesis on your product
-We also made a script and notebook for retrosynthesis prediction on desired product at `Retrosynthesis.ipynb` for chemists.
+

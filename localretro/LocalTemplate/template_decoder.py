@@ -124,6 +124,7 @@ def select_right_reactant(matched_idx, reactants):
             if check_idx_match(reactant) == matched_idx:
                 right_reactants.append(reactants_smi)
         except Exception as e:
+#             print (e)
             pass
         
     right_reactants = list(set(right_reactants))
@@ -145,7 +146,7 @@ def apply_template(products, template, edit_idx, temp_idx, H_change):
     
         try:
             template = include_ring_info(products, template, edit_idx, temp_idx, matched_idx)
-        except:
+        except Exception as e:
             continue
             
         fit_template = fix_temp(template, H_before, H_after)

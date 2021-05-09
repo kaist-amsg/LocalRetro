@@ -1,3 +1,7 @@
+'''
+This python script is modified from rdchiral template extractor 
+https://github.com/connorcoley/rdchiral/blob/master/rdchiral/template_extractor.py
+'''
 import re
 from numpy.random import shuffle
 from collections import defaultdict
@@ -343,7 +347,7 @@ def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
     if VERBOSE: print('after building reactant fragments, additional labels included: {}'.format(expansion))
     return expansion
 
-def get_fragments_for_changed_atoms(mols, changed_atom_tags):
+def get_fragments_for_changed_atoms(mols, changed_atom_tags, category = 'reactant'):
     '''Given a list of RDKit mols and a list of changed atom tags, this function
     computes the SMILES string of molecular fragments using MolFragmentToSmiles 
     for all changed fragments.
@@ -362,7 +366,6 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags):
         for atom in mol.GetAtoms():
             # Check self (only tagged atoms)
             if ':' in atom.GetSmarts():
-#                 print (atom.GetSmarts())
                 if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
                     atoms_to_use.append(atom.GetIdx())
                     symbol = get_strict_smarts_for_atom(atom)
@@ -371,11 +374,11 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags):
                     continue
 
         # Fully define leaving groups and this molecule participates?
-        if INCLUDE_ALL_UNMAPPED_REACTANT_ATOMS and len(atoms_to_use) > 0:
+        if category == 'reactant' and len(atoms_to_use) > 0:
             for atom in mol.GetAtoms():
                 if not atom.HasProp('molAtomMapNumber'):
                     atoms_to_use.append(atom.GetIdx())
-
+                    
         # Define new symbols based on symbol_replacements
         symbols = [atom.GetSmarts() for atom in mol.GetAtoms()]
         for (i, symbol) in symbol_replacements:

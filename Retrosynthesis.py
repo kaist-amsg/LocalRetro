@@ -27,7 +27,7 @@ def predict(model, graph, device):
 
 def load_trained_model(dataset, device):
     args = {'dataset': dataset}
-    args['model_path'] = 'Results/%s_GRA_checkpoints/model.pth' % args['dataset']
+    args['model_path'] = 'Pretrained_models/%s.pth' % args['dataset']
 
     with open('data/config.json', 'r') as f:
         exp_config = json.load(f)
