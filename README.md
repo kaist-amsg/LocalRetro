@@ -78,7 +78,7 @@ We also made a python notebook for quick retrosynthesis prediction on desired pr
 See the README in `./Pretrained_models` to download the models for retrosynthesis prediction.
 
 ## Reproduce the prediction accuracy in the paper
-For fast reproducing the model, we shared the trained model and decoded results at `./Results` directory.
-You can get the prediction accuracy of USPTO_50K by running the python notebook `Top_K_accuracy.ipynb` with changing using GRA or given reaction class.
+For quick reproducing the results shown in paper, we shared the trained decoded results at `./Results` directory.
+The exact and isomer accuracy of USPTO_50K can be obtained by running the python notebook `Top_K_accuracy.ipynb` with changing using GRA or given reaction class.
 
 
