@@ -1,5 +1,5 @@
-import pandas as pd
 import json
+import pandas as pd
 
 import torch
 from torch import nn
@@ -11,10 +11,9 @@ import dgl
 from dgllife.utils import smiles_to_bigraph, WeaveAtomFeaturizer, CanonicalBondFeaturizer
 from functools import partial
 
-
-from localretro.utils import collate_molgraphs_test, load_LocalRetro, predict, init_featurizer
-from localretro.get_edit import combined_edit
-from localretro.LocalTemplate.template_decoder import apply_template
+from scripts.utils import collate_molgraphs_test, load_LocalRetro, predict, init_featurizer
+from scripts.get_edit import combined_edit
+from LocalTemplate.template_decoder import apply_template
 
 def predict(model, graph, device):
     bg = dgl.batch([graph])
@@ -27,7 +26,7 @@ def predict(model, graph, device):
 
 def load_trained_model(dataset, device):
     args = {'dataset': dataset}
-    args['model_path'] = 'Pretrained_models/%s.pth' % args['dataset']
+    args['model_path'] = 'models/%s.pth' % args['dataset']
 
     with open('data/config.json', 'r') as f:
         exp_config = json.load(f)
