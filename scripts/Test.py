@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser('LocalRetro testing arguements')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-attention', default=True, help='Model use GRA or not')
+    parser.add_argument('-a', '--use-GRA', default=True, help='Model use GRA or not')
     parser.add_argument('-k', '--top_num', default=100, help='Num. of predictions to write')
     parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
     args = parser.parse_args().__dict__
@@ -46,15 +46,19 @@ if __name__ == '__main__':
         args['device'] = torch.device('cpu')
 
     args = init_featurizer(args)
-    model_type = 'GRA' if args['use_attention'] else 'noGRA'
-    args['result_path'] = '../results/%s_%s_outputs' % (args['dataset'], model_type)
-    args['model_path'] = '../results/%s_%s_checkpoints/model.pth' % (args['dataset'], model_type)
-    mkdir_p(args['result_path'])
+    
+    output_name = '%s.txt' % args['dataset'] if args['use_GRA'] else '%s_noGRA.txt' % args['dataset']
+    model_name = '%s.pth' % args['dataset'] if args['use_GRA'] else '%s_noGRA.pth' % args['dataset']
+    
+    args['result_path'] = '../outputs/raw_prediction/' + output_name
+    args['model_path'] = '../models/' + model_name
+    mkdir_p('../outputs')
+    mkdir_p('../outputs/raw_prediction')
     
     exp_config = get_configure()
     exp_config['ALRT_CLASS'] = len(pd.read_csv('../data/%s/atom_templates.csv' % args['dataset']))
     exp_config['BLRT_CLASS'] = len(pd.read_csv('../data/%s/bond_templates.csv' % args['dataset']))
-    exp_config['attention_mode'] = model_type
+    exp_config['use_GRA'] = args['use_GRA']
     
     test_set = USPTO_test_Dataset(args,
                         smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),

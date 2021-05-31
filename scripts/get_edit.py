@@ -6,7 +6,7 @@ import time
 import torch
 import torch.nn as nn
 
-from .utils import predict
+from utils import predict
 
 import dgl
 
@@ -52,13 +52,8 @@ def get_bg_partition(bg):
 
 def write_edits(args, model, test_loader, exp_config):
     model.eval()
-    ATOM_CLASS = exp_config['ALRT_CLASS']
-    BOND_CLASS = exp_config['BLRT_CLASS']
-    top_num = args['top_num']
-    
-    report_file = args['result_path'] + '/raw_prediction.txt'
-    with open(report_file, 'w') as f:
-        f.write('Test_id\tReaction\t%s\n' % '\t'.join(['Edit %s\tProba %s' % (i+1, i+1) for i in range(top_num)]))
+    with open(args['result_path'], 'w') as f:
+        f.write('Test_id\tReaction\t%s\n' % '\t'.join(['Edit %s\tProba %s' % (i+1, i+1) for i in range(args['top_num'])]))
         with torch.no_grad():
             for batch_id, data in enumerate(test_loader):
                 _, bg, rxns = data
@@ -73,10 +68,10 @@ def write_edits(args, model, test_loader, exp_config):
                 for single_id, (graph, end_node, end_edge) in enumerate(zip(graphs, nodes_sep, edges_sep)):
                     rxn = rxns[single_id]
                     test_id = (batch_id * exp_config['batch_size']) + single_id
-                    edit_id, edit_proba = combined_edit(graph, batch_atom_logits[start_node:end_node], batch_bond_logits[start_edge:end_edge], ATOM_CLASS, BOND_CLASS, top_num)
+                    edit_id, edit_proba = combined_edit(graph, batch_atom_logits[start_node:end_node], batch_bond_logits[start_edge:end_edge], exp_config['ALRT_CLASS'], exp_config['BLRT_CLASS'], args['top_num'])
                     start_node = end_node
                     start_edge = end_edge
-                    f.write('%s\t%s\t%s\n' % (test_id, rxn, '\t'.join(['%s\t%.3f' % (edit_id[i], edit_proba[i]) for i in range(top_num)])))
+                    f.write('%s\t%s\t%s\n' % (test_id, rxn, '\t'.join(['%s\t%.3f' % (edit_id[i], edit_proba[i]) for i in range(args['top_num'])])))
 
     print ()
     return 

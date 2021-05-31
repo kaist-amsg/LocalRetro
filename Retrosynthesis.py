@@ -24,6 +24,16 @@ def predict(model, graph, device):
     edge_feats = bg.edata.pop('e').to(device)
     return model(bg, node_feats, edge_feats)
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
+
 def load_trained_model(dataset, device):
     args = {'dataset': dataset}
     args['model_path'] = 'models/%s.pth' % args['dataset']
@@ -41,7 +51,7 @@ def load_trained_model(dataset, device):
     smarts2H = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['change_H'][i]) for i in smiles2smarts.index}
     exp_config['ALRT_CLASS'] = len(atom_templates)
     exp_config['BLRT_CLASS'] = len(bond_templates)
-    exp_config['attention_mode'] = 'GRA'
+    exp_config['use_GRA'] = True
 
     smiles_to_graph = partial(smiles_to_bigraph, add_self_loop=True)
     node_featurizer = WeaveAtomFeaturizer()
@@ -52,7 +62,9 @@ def load_trained_model(dataset, device):
     exp_config['in_edge_feats'] = edge_featurizer.feat_size()
     model = load_LocalRetro(exp_config)
     model = model.to(device)
+        
     model.load_state_dict(torch.load(args['model_path'])['model_state_dict'])
+    
     return model, graph_function, atom_templates, bond_templates, smarts2E, smarts2H
 
 def remap(mol):
@@ -85,6 +97,7 @@ def retrosnythesis(smiles, model, graph_function, device, atom_templates, bond_t
         template_idx = smarts2E[template]
         H_change = smarts2H[template]
         predictions, fit_templates, matched_idx_list = apply_template(smiles, template, edit_idx, template_idx, H_change)
+        print (k, template, edit_idx, predictions)
         
         for reactant in predictions:
             if reactant not in predicted_reactants:

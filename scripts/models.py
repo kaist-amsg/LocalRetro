@@ -5,7 +5,7 @@ import sklearn
 import dgl
 import dgllife
 from dgllife.model import MPNNGNN
-from .model_utils import pair_atom_feats, unbatch_mask, unbatch_feats, MSA
+from model_utils import pair_atom_feats, unbatch_mask, unbatch_feats, MSA
 
 class LocalRetro(nn.Module):
     def __init__(self,
@@ -14,13 +14,13 @@ class LocalRetro(nn.Module):
                  node_out_feats,
                  edge_hidden_feats,
                  num_step_message_passing,
-                 attention_mode,
+                 use_GRA,
                  attention_heads,
                  ALRT_CLASS, 
                  BLRT_CLASS):
         super(LocalRetro, self).__init__()
         
-        self.attention_mode = attention_mode
+        self.use_GRA = use_GRA
         
         self.mpnn = MPNNGNN(node_in_feats=node_in_feats,
                            node_out_feats=node_out_feats,
@@ -49,7 +49,7 @@ class LocalRetro(nn.Module):
         atom_feats1 = node_feats
         bond_feats1 = self.linearB(pair_atom_feats(g, node_feats))
         
-        if self.attention_mode == 'GRA':
+        if self.use_GRA:
             edit_feats, mask = unbatch_mask(g, atom_feats1, bond_feats1)
             attention_score, edit_feats = self.att(edit_feats, mask)
         else:

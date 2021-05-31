@@ -26,13 +26,12 @@ def main(args):
     smarts2E = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['edit_site'][i]) for i in smiles2smarts.index}
     smarts2H = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['change_H'][i]) for i in smiles2smarts.index}
     
-    model_type = 'GRA' if args['use_attention'] else 'noGRA'
    
-    args['result_path'] = '../results/%s_%s_outputs/raw_prediction.txt' % (args['dataset'], model_type)
-    prediction = pd.read_csv(args['result_path'], sep = '\t')
+    result_name = '%s.txt' % args['dataset'] if args['use_GRA'] else '%s_noGRA.txt' % args['dataset']
+    prediction = pd.read_csv('../outputs/raw_prediction/' + result_name, sep = '\t')
     
-    output_path = args['result_path'].replace('raw', 'decoded')
-    output_path_class = args['result_path'].replace('raw', 'decoded_class')
+    output_path = '../outputs/raw_prediction/' + result_name
+    output_path_class = '../outputs/decoded_prediction_class/' + result_name
     
     with open(output_path, 'w') as f1, open(output_path_class, 'w') as f2:
         for i in prediction.index:
@@ -79,12 +78,15 @@ def main(args):
        
 if __name__ == '__main__':      
     from argparse import ArgumentParser
-
-    parser = ArgumentParser('Local Retrosynthetic Template Prediction')
+    from utils import mkdir_p
+    
+    parser = ArgumentParser('Decode Prediction')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-attention', default= True, help='Model use GRA or not')
+    parser.add_argument('-a', '--use-GRA', default= True, help='Model use GRA or not')
     parser.add_argument('-k', '--top-k', default= 50, help='Number of top predictions')
     args = parser.parse_args().__dict__
+    mkdir_p('../outputs/decoded_prediction')
+    mkdir_p('../outputs/decoded_prediction_class')
     main(args)
         
         

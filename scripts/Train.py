@@ -89,17 +89,19 @@ def main(args, exp_config, train_set, val_set, test_set):
         user_answer = input('model.pth exists, want to (a) overlap (b) continue from checkpoint (c) make a new model? ')
         if user_answer == 'a':
             stopper = EarlyStopping(mode = 'lower', patience=exp_config['patience'], filename=args['model_path'])
-            print ('Overlap exsited model and training a new model...')
+            print ('Overlap exsited model and train a new model...')
         elif user_answer == 'b':
             stopper = EarlyStopping(mode = 'lower', patience=exp_config['patience'], filename=args['model_path'])
             stopper.load_checkpoint(model)
             print ('Train from exsited model checkpoint...')
         elif user_answer == 'c':
             model_name = input('Enter new model name: ')
-            args['model_path'] = args['model_path'].replace('model.pth', '%s.pth' % model_name)
+            args['model_path'] =  '../models/' + model_name + '.pth'
             stopper = EarlyStopping(mode = 'lower', patience=exp_config['patience'], filename=args['model_path'])
             print ('Training a new model %s' % model_name)
-
+    else:
+        stopper = EarlyStopping(mode = 'lower', patience=exp_config['patience'], filename=args['model_path'])
+    
     for epoch in range(args['num_epochs']):
         # Train
         run_a_train_epoch(args, epoch, model, train_loader, loss_criterion, optimizer)
@@ -129,7 +131,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser('LocalRetro training arguements')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-attention', default= True, help='Model use GRA or not')
+    parser.add_argument('-a', '--use-GRA', default= True, help='Model use GRA or not')
     parser.add_argument('-n', '--num-epochs', type=int, default=50, help='Maximum number of epochs for training.')
     parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
     parser.add_argument('-pe', '--print-every', type=int, default=20, help='Print the training progress every X mini-batches')
@@ -142,15 +144,15 @@ if __name__ == '__main__':
         args['device'] = torch.device('cpu')
 
     args = init_featurizer(args)
-    model_type = 'GRA' if args['use_attention'] else 'noGRA'
+    model_name = '%s.pth' % args['dataset'] if args['use_GRA'] else '%s_noGRA.pth' % args['dataset']
 
-    args['model_path'] = '../results/%s_%s_checkpoints/model.pth' % (args['dataset'], model_type)
-    mkdir_p('../results/%s_%s_checkpoints' % (args['dataset'], model_type))
+    args['model_path'] = '../models/' + model_name
+    mkdir_p('../models')
 
     exp_config = get_configure()
     exp_config['ALRT_CLASS'] = len(pd.read_csv('../data/%s/atom_templates.csv' % args['dataset']))
     exp_config['BLRT_CLASS'] = len(pd.read_csv('../data/%s/bond_templates.csv' % args['dataset']))
-    exp_config['attention_mode'] = model_type
+    exp_config['use_GRA'] = args['use_GRA']
     print ('Loaded %s atom templates and %s bond templates' % (exp_config['ALRT_CLASS'], exp_config['BLRT_CLASS']))
 
     dataset = USPTODataset(args, 

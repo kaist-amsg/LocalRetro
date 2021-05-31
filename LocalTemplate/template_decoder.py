@@ -113,6 +113,15 @@ def demap(mol):
     smi = Chem.MolToSmiles(mol)
     return Chem.MolToSmiles(deradical(Chem.MolFromSmiles(smi)))
 
+def match_subdict(parent, child):
+    match = False
+    for k,v in child.items():
+        if k not in parent.keys():
+            return match
+        elif parent[k] != v:
+            return match
+    return True
+    
 def select_right_reactant(matched_idx, reactants):
     right_reactants = []
     all_reactants = []
@@ -120,16 +129,14 @@ def select_right_reactant(matched_idx, reactants):
         try:
             reactants_smi = '.'.join(sorted([demap(r) for r in reactant]))
             all_reactants.append(reactants_smi)
-            
-            if check_idx_match(reactant) == matched_idx:
+
+            if match_subdict(check_idx_match(reactant), matched_idx):
                 right_reactants.append(reactants_smi)
         except Exception as e:
 #             print (e)
             pass
-        
+    
     right_reactants = list(set(right_reactants))
-    if len(right_reactants) == 0:
-        right_reactants = list(set(all_reactants))
     return right_reactants
     
 def apply_template(products, template, edit_idx, temp_idx, H_change):
@@ -143,7 +150,6 @@ def apply_template(products, template, edit_idx, temp_idx, H_change):
         H_after = {k: H_before[k] + change for k, change in H_change.items()}
         if not H_before:
             continue
-    
         try:
             template = include_ring_info(products, template, edit_idx, temp_idx, matched_idx)
         except Exception as e:

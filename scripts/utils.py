@@ -8,7 +8,7 @@ import numpy as np
 import torch.nn.functional as F
 
 from dgl.data.utils import Subset
-from .models import LocalRetro
+from models import LocalRetro
 
 def init_featurizer(args):
     from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer
@@ -112,7 +112,7 @@ def load_LocalRetro(exp_configure):
         node_out_feats=exp_configure['node_out_feats'],
         edge_hidden_feats=exp_configure['edge_hidden_feats'],
         num_step_message_passing=exp_configure['num_step_message_passing'],
-        attention_mode = exp_configure['attention_mode'],
+        use_GRA = exp_configure['use_GRA'],
         attention_heads = exp_configure['attention_heads'],
         ALRT_CLASS = exp_configure['ALRT_CLASS'],
         BLRT_CLASS = exp_configure['BLRT_CLASS'])
