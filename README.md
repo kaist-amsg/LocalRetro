@@ -12,8 +12,21 @@ Shuan Chen<br>
 * DGL (version >= 0.5.2)
 * DGLLife (version >= 0.2.6)
 
+## Requirements
+Create a virtual environment to run the code of LocalRetro.<br>
+Install pytorch with the cuda version that fits your device.<br>
+```
+cd LocalRetro
+conda create -c conda-forge -n localchem  python=3.6 -y
+conda activate localchem
+conda install pytorch==1.0.0 cuda80 -c pytorch -y
+conda install -c conda-forge rdkit -y
+pip install dgl
+pip install dgllife
+```
+
 ## Publication
-TBD
+Shuan Chen and Yousung Jung. Retrosynthesis Prediction by Learning the Local Chemical Reactivity with Nonlocal Attention, JACS Au 2021 (under review).
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
@@ -74,8 +87,8 @@ The decoded reactants will be saved at
 `LocalRetro/outputs/decoded_prediction/USPTO_50K.txt`<br>and 
 `LocalRetro/outputs/decoded_prediction_class/USPTO_50K.txt`<br>
 
-## Data Release
-For users to reproduce the results shown in paper and quick retrosynthesis, we shared the trained models and results on the GitHub Release in this repo.
+## Pretrained models and results
+For users to reproduce the results shown in paper and quick retrosynthesis, we shared the pretrained models and results on the GitHub Release in this repo.
 
 ## Retrosynthesis on desired product
 For quick implementation of retrosynthesis prediction via our model, see `Retrosynthesis.ipynb` for quick start.

@@ -30,7 +30,7 @@ def main(args):
     result_name = '%s.txt' % args['dataset'] if args['use_GRA'] else '%s_noGRA.txt' % args['dataset']
     prediction = pd.read_csv('../outputs/raw_prediction/' + result_name, sep = '\t')
     
-    output_path = '../outputs/raw_prediction/' + result_name
+    output_path = '../outputs/decoded_prediction/' + result_name
     output_path_class = '../outputs/decoded_prediction_class/' + result_name
     
     with open(output_path, 'w') as f1, open(output_path_class, 'w') as f2:

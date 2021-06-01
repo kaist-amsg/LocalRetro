@@ -97,7 +97,6 @@ def retrosnythesis(smiles, model, graph_function, device, atom_templates, bond_t
         template_idx = smarts2E[template]
         H_change = smarts2H[template]
         predictions, fit_templates, matched_idx_list = apply_template(smiles, template, edit_idx, template_idx, H_change)
-        print (k, template, edit_idx, predictions)
         
         for reactant in predictions:
             if reactant not in predicted_reactants:
@@ -105,7 +104,7 @@ def retrosnythesis(smiles, model, graph_function, device, atom_templates, bond_t
                 predicted_edition.append('%s at %s' % (template, edit_idx))
                 predicted_scores.append(score)
                 
-    results_df = pd.DataFrame({'SMILES': predicted_reactants, 'Edition': predicted_edition, 'Score': predicted_scores})
+    results_df = pd.DataFrame({'SMILES': predicted_reactants, 'Local reaction template': predicted_edition, 'Score': predicted_scores})
     PandasTools.AddMoleculeColumnToFrame(results_df,'SMILES','Molecule')
     remap(results_df['Molecule'][0])
     return results_df
