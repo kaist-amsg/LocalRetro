@@ -1,12 +1,15 @@
 import os, sys, re
 import pandas as pd
 from collections import defaultdict
-
+from argparse import ArgumentParser
+sys.path.append('../')
+    
 import rdkit
 from rdkit import Chem, RDLogger 
 from rdkit.Chem import rdChemReactions
 
-sys.path.append('../')
+from utils import mkdir_p
+
 from LocalTemplate.template_decoder import *
 
 def main(args):   
@@ -27,7 +30,7 @@ def main(args):
     smarts2H = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['change_H'][i]) for i in smiles2smarts.index}
     
    
-    result_name = '%s.txt' % args['dataset'] if args['use_GRA'] else '%s_noGRA.txt' % args['dataset']
+    result_name = '%s.txt' % args['dataset'] if args['GRA'] else '%s_noGRA.txt' % args['dataset']
     prediction = pd.read_csv('../outputs/raw_prediction/' + result_name, sep = '\t')
     
     output_path = '../outputs/decoded_prediction/' + result_name
@@ -77,13 +80,11 @@ def main(args):
     print ()
        
 if __name__ == '__main__':      
-    from argparse import ArgumentParser
-    from utils import mkdir_p
-    
     parser = ArgumentParser('Decode Prediction')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-GRA', default= True, help='Model use GRA or not')
     parser.add_argument('-k', '--top-k', default= 50, help='Number of top predictions')
+    parser.add_argument('-gra', '--GRA', default= True, help='Model use GRA or not')
+    args['GRA'] = False if args['GRA'] == 'False' else True
     args = parser.parse_args().__dict__
     mkdir_p('../outputs/decoded_prediction')
     mkdir_p('../outputs/decoded_prediction_class')

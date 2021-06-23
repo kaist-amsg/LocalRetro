@@ -14,13 +14,14 @@ class LocalRetro(nn.Module):
                  node_out_feats,
                  edge_hidden_feats,
                  num_step_message_passing,
-                 use_GRA,
                  attention_heads,
-                 ALRT_CLASS, 
-                 BLRT_CLASS):
+                 attention_layers,
+                 AtomTemplate_n, 
+                 BondTemplate_n,
+                 GRA):
         super(LocalRetro, self).__init__()
         
-        self.use_GRA = use_GRA
+        self.GRA = GRA
         
         self.mpnn = MPNNGNN(node_in_feats=node_in_feats,
                            node_out_feats=node_out_feats,
@@ -30,18 +31,18 @@ class LocalRetro(nn.Module):
         
         self.linearB = nn.Linear(node_out_feats*2, node_out_feats)
 
-        self.att = MSA(attention_heads, node_out_feats)
-            
+        self.att = MSA(node_out_feats, attention_heads, attention_layers)
+        
         self.atom_editor =  nn.Sequential(
                             nn.Linear(node_out_feats, node_out_feats), 
                             nn.ReLU(), 
                             nn.Dropout(0.2),
-                            nn.Linear(node_out_feats, ALRT_CLASS+1))
+                            nn.Linear(node_out_feats, AtomTemplate_n+1))
         self.bond_editor =  nn.Sequential(
                             nn.Linear(node_out_feats, node_out_feats), 
                             nn.ReLU(), 
                             nn.Dropout(0.2),
-                            nn.Linear(node_out_feats, BLRT_CLASS+1))
+                            nn.Linear(node_out_feats, BondTemplate_n+1))
 
     def forward(self, g, node_feats, edge_feats):
 
@@ -49,7 +50,7 @@ class LocalRetro(nn.Module):
         atom_feats1 = node_feats
         bond_feats1 = self.linearB(pair_atom_feats(g, node_feats))
         
-        if self.use_GRA:
+        if self.GRA:
             edit_feats, mask = unbatch_mask(g, atom_feats1, bond_feats1)
             attention_score, edit_feats = self.att(edit_feats, mask)
         else:

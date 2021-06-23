@@ -50,7 +50,7 @@ def get_bg_partition(bg):
         edges_sep.append(edges_sep[-1] + g.num_edges())
     return gs, nodes_sep[1:], edges_sep[1:]
 
-def write_edits(args, model, test_loader, exp_config):
+def write_edits(args, model, test_loader):
     model.eval()
     with open(args['result_path'], 'w') as f:
         f.write('Test_id\tReaction\t%s\n' % '\t'.join(['Edit %s\tProba %s' % (i+1, i+1) for i in range(args['top_num'])]))
@@ -67,8 +67,8 @@ def write_edits(args, model, test_loader, exp_config):
                 print('\rWriting test molecule batch %s/%s' % (batch_id, len(test_loader)), end='', flush=True)
                 for single_id, (graph, end_node, end_edge) in enumerate(zip(graphs, nodes_sep, edges_sep)):
                     rxn = rxns[single_id]
-                    test_id = (batch_id * exp_config['batch_size']) + single_id
-                    edit_id, edit_proba = combined_edit(graph, batch_atom_logits[start_node:end_node], batch_bond_logits[start_edge:end_edge], exp_config['ALRT_CLASS'], exp_config['BLRT_CLASS'], args['top_num'])
+                    test_id = (batch_id * args['batch_size']) + single_id
+                    edit_id, edit_proba = combined_edit(graph, batch_atom_logits[start_node:end_node], batch_bond_logits[start_edge:end_edge], args['AtomTemplate_n'], args['BondTemplate_n'], args['top_num'])
                     start_node = end_node
                     start_edge = end_edge
                     f.write('%s\t%s\t%s\n' % (test_id, rxn, '\t'.join(['%s\t%.3f' % (edit_id[i], edit_proba[i]) for i in range(args['top_num'])])))

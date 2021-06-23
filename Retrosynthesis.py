@@ -11,7 +11,7 @@ import dgl
 from dgllife.utils import smiles_to_bigraph, WeaveAtomFeaturizer, CanonicalBondFeaturizer
 from functools import partial
 
-from scripts.utils import collate_molgraphs_test, load_LocalRetro, predict, init_featurizer
+from scripts.utils import init_featurizer, load_model, collate_molgraphs_test
 from scripts.get_edit import combined_edit
 from LocalTemplate.template_decoder import apply_template
 
@@ -24,48 +24,26 @@ def predict(model, graph, device):
     edge_feats = bg.edata.pop('e').to(device)
     return model(bg, node_feats, edge_feats)
 
-def get_n_params(model):
-    pp=0
-    for p in list(model.parameters()):
-        nn=1
-        for s in list(p.size()):
-            nn = nn*s
-        pp += nn
-    return pp
-
-
-def load_trained_model(dataset, device):
-    args = {'dataset': dataset}
-    args['model_path'] = 'models/%s.pth' % args['dataset']
-
-    with open('data/config.json', 'r') as f:
-        exp_config = json.load(f)
-
-    atom_templates = pd.read_csv('data/%s/atom_templates.csv' % args['dataset'])
-    bond_templates = pd.read_csv('data/%s/bond_templates.csv' % args['dataset'])
-    smiles2smarts = pd.read_csv('data/%s/smiles2smarts.csv' % args['dataset'])
-
+def load_templates(args):
+    atom_templates = pd.read_csv('%s/atom_templates.csv' % args['data_dir'])
+    bond_templates = pd.read_csv('%s/bond_templates.csv' % args['data_dir'])
+    smiles2smarts = pd.read_csv('%s/smiles2smarts.csv' % args['data_dir'])
     atom_templates = {atom_templates['Class'][i]: atom_templates['Template'][i] for i in atom_templates.index}
     bond_templates = {bond_templates['Class'][i]: bond_templates['Template'][i] for i in bond_templates.index}
     smarts2E = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['edit_site'][i]) for i in smiles2smarts.index}
     smarts2H = {smiles2smarts['Smarts_template'][i]: eval(smiles2smarts['change_H'][i]) for i in smiles2smarts.index}
-    exp_config['ALRT_CLASS'] = len(atom_templates)
-    exp_config['BLRT_CLASS'] = len(bond_templates)
-    exp_config['use_GRA'] = True
+    return atom_templates, bond_templates, smarts2E, smarts2H
 
+def init_LocalRetro(args):
+    args = init_featurizer(args)
+    model = load_model(args)
+    atom_templates, bond_templates, smarts2E, smarts2H = load_templates(args)
     smiles_to_graph = partial(smiles_to_bigraph, add_self_loop=True)
     node_featurizer = WeaveAtomFeaturizer()
     edge_featurizer = CanonicalBondFeaturizer(self_loop=True)
     graph_function = lambda s: smiles_to_graph(s, node_featurizer = node_featurizer, edge_featurizer = edge_featurizer, canonical_atom_order = False)
-
-    exp_config['in_node_feats'] = node_featurizer.feat_size()
-    exp_config['in_edge_feats'] = edge_featurizer.feat_size()
-    model = load_LocalRetro(exp_config)
-    model = model.to(device)
-        
-    model.load_state_dict(torch.load(args['model_path'])['model_state_dict'])
-    
     return model, graph_function, atom_templates, bond_templates, smarts2E, smarts2H
+
 
 def remap(mol):
     for atom in mol.GetAtoms():

@@ -1,6 +1,7 @@
 from collections import defaultdict
 import pandas as pd
 import sys, os, re
+from argparse import ArgumentParser
 
 import rdkit
 from rdkit import Chem, RDLogger 
@@ -165,9 +166,7 @@ def export_template(derived_templates, args):
     return
 
 
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    
+if __name__ == '__main__':  
     parser = ArgumentParser('Local Template Extractor')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-t', '--threshold', default=1,  help='Template refinement threshold')

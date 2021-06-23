@@ -1,68 +1,41 @@
 import numpy as np
 import pandas as pd
+from argparse import ArgumentParser
 
 import torch
 import sklearn
 import torch.nn as nn
 
-from dgllife.model import load_pretrained
-from dgllife.utils import smiles_to_bigraph, EarlyStopping, Meter
-from functools import partial
-from torch.utils.data import DataLoader
-
-from utils import collate_molgraphs_test, load_LocalRetro, predict
-from load_dataset import USPTO_test_Dataset
+from utils import init_featurizer, mkdir_p, get_configure, load_model, load_dataloader, predict
 from get_edit import write_edits
 
-
-def main(args, exp_config, test_set):
-    exp_config['in_node_feats'] = args['node_featurizer'].feat_size()
-    exp_config['in_edge_feats'] = args['edge_featurizer'].feat_size()
-    
-    test_loader = DataLoader(dataset=test_set, batch_size=exp_config['batch_size'],
-                             collate_fn=collate_molgraphs_test, num_workers=args['num_workers'])
-    model = load_LocalRetro(exp_config)
-    model = model.to(args['device'])
-    stopper = EarlyStopping(filename = args['model_path']) 
-    stopper.load_checkpoint(model)
-
-    write_edits(args, model, test_loader, exp_config)
-    
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-
-    from utils import init_featurizer, mkdir_p, split_dataset, get_configure
-
-    parser = ArgumentParser('LocalRetro testing arguements')
-    parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
-    parser.add_argument('-a', '--use-GRA', default=True, help='Model use GRA or not')
-    parser.add_argument('-k', '--top_num', default=100, help='Num. of predictions to write')
-    parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
-    args = parser.parse_args().__dict__
-
-    if torch.cuda.is_available():
-        args['device'] = torch.device('cuda:0')
-    else:
-        args['device'] = torch.device('cpu')
-
-    args = init_featurizer(args)
-    
-    output_name = '%s.txt' % args['dataset'] if args['use_GRA'] else '%s_noGRA.txt' % args['dataset']
-    model_name = '%s.pth' % args['dataset'] if args['use_GRA'] else '%s_noGRA.pth' % args['dataset']
-    
-    args['result_path'] = '../outputs/raw_prediction/' + output_name
-    args['model_path'] = '../models/' + model_name
+def main(args):
+    model_name = '%s.pth' % args['dataset'] if args['GRA'] else '%s_noGRA.pth' % args['dataset']
+    args['model_path'] = '../models/%s' % model_name
+    args['config_path'] = '../data/configs/%s' % args['config']
+    args['data_dir'] = '../data/%s' % args['dataset']
+    args['result_path'] = '../outputs/raw_prediction/%s' % model_name.replace('.pth', '.txt')
     mkdir_p('../outputs')
     mkdir_p('../outputs/raw_prediction')
     
-    exp_config = get_configure()
-    exp_config['ALRT_CLASS'] = len(pd.read_csv('../data/%s/atom_templates.csv' % args['dataset']))
-    exp_config['BLRT_CLASS'] = len(pd.read_csv('../data/%s/bond_templates.csv' % args['dataset']))
-    exp_config['use_GRA'] = args['use_GRA']
+    args = init_featurizer(args)
+    model = load_model(args)
+    test_loader = load_dataloader(args)
+    write_edits(args, model, test_loader)
+    return
     
-    test_set = USPTO_test_Dataset(args,
-                        smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),
-                        node_featurizer=args['node_featurizer'],
-                        edge_featurizer=args['edge_featurizer'])
-
-    main(args, exp_config, test_set)
+if __name__ == '__main__':
+    parser = ArgumentParser('LocalRetro testing arguements')
+    parser.add_argument('-g', '--gpu', default='cuda:1', help='GPU device to use')
+    parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
+    parser.add_argument('-c', '--config', default='default_config.json', help='Configuration of model')
+    parser.add_argument('-b', '--batch-size', default=16, help='Batch size of dataloader')
+    parser.add_argument('-k', '--top_num', default=100, help='Num. of predictions to write')
+    parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
+    parser.add_argument('-gra', '--GRA', default=True, help='Test the model trained with Global Reactivity attention or not')
+    args = parser.parse_args().__dict__
+    args['mode'] = 'test'
+    args['GRA'] = False if args['GRA'] == 'False' else True
+    args['device'] = torch.device(args['gpu']) if torch.cuda.is_available() else torch.device('cpu')
+    print ('Using device %s' % args['device'])
+    main(args)

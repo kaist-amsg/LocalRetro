@@ -333,7 +333,7 @@ def get_strict_smarts_for_atom(atom):
             
     return symbol
 
-def get_fragments_for_changed_atoms(mols, changed_atom_tags, category = 'reactant', retro = True):
+def get_fragments_for_changed_atoms(mols, changed_atom_tags, category = 'reactant'):
     '''Given a list of RDKit mols and a list of changed atom tags, this function
     computes the SMILES string of molecular fragments using MolFragmentToSmiles 
     for all changed fragments.
@@ -363,11 +363,6 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, category = 'reactan
         if category == 'reactant' and len(atoms_to_use) > 0:
             for atom in mol.GetAtoms():
                 if not atom.HasProp('molAtomMapNumber'):
-                    if not retro:
-                        # only get the leaving group next to mapped atom
-                        neighbors = set([a.GetAtomMapNum() for a in atom.GetNeighbors()])
-                        if neighbors == set([0]):
-                            continue
                     atoms_to_use.append(atom.GetIdx())
                     
         # Define new symbols based on symbol_replacements
@@ -509,7 +504,7 @@ def bond_to_smarts(bond):
     
     return '{}{}{}'.format(atoms[0], bond_smarts, atoms[1])
 
-def extract_from_reaction(reaction, retro = True):
+def extract_from_reaction(reaction):
     reactants = mols_from_smiles_list(replace_deuterated(reaction['reactants']).split('.'))
     products = mols_from_smiles_list(replace_deuterated(reaction['products']).split('.'))
     
@@ -593,9 +588,9 @@ def extract_from_reaction(reaction, retro = True):
 
     try:
         # Get fragments for reactants
-        reactant_fragments, intra_only, dimer_only = get_fragments_for_changed_atoms(reactants, changed_atom_tags, retro = retro)
+        reactant_fragments, intra_only, dimer_only = get_fragments_for_changed_atoms(reactants, changed_atom_tags)
         # Get fragments for products 
-        product_fragments, _, _  = get_fragments_for_changed_atoms(products, changed_atom_tags, retro = retro)
+        product_fragments, _, _  = get_fragments_for_changed_atoms(products, changed_atom_tags)
 
     except ValueError as e:
         if VERBOSE:
@@ -616,11 +611,7 @@ def extract_from_reaction(reaction, retro = True):
     
     # Eliminate duplicated template due to different sorting
     canonical_template, replacement_dict = sort_template(products_string + '>>' + reactants_string, replacement_dict)
-    if retro:
-        edit_idxs, H_change = match_label(reaction['products'], reaction['reactants'], replacement_dict, changed_atom_tags, retro)
-    else:
-        canonical_template = '>>'.join(canonical_template.split('>>')[::-1])
-        edit_idxs, H_change = match_label(reaction['reactants'], reaction['products'], replacement_dict, changed_atom_tags, retro)
+    edit_idxs, H_change = match_label(reaction['products'], reaction['reactants'], replacement_dict, changed_atom_tags)
 
     # Load into RDKit
     rxn = AllChem.ReactionFromSmarts(canonical_template)
@@ -630,8 +621,6 @@ def extract_from_reaction(reaction, retro = True):
         print('canonical_template: {}'.format(canonical_template))
         if VERBOSE: raw_input('Pausing...')
         return {'reaction_id': reaction['_id']}
-
-    
 
     template = {
     'products': products_string,

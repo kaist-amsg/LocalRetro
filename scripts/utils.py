@@ -5,16 +5,35 @@ import errno
 import json
 import os
 import numpy as np
-import torch.nn.functional as F
+import pandas as pd
+from functools import partial
+
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torch.optim import Adam, lr_scheduler
 
 from dgl.data.utils import Subset
+from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer, smiles_to_bigraph, EarlyStopping
+
 from models import LocalRetro
+from dataset import USPTODataset, USPTOTestDataset
 
 def init_featurizer(args):
-    from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer
     args['node_featurizer'] = WeaveAtomFeaturizer()
     args['edge_featurizer'] = CanonicalBondFeaturizer(self_loop=True)
     return args
+
+def get_configure(args):
+    with open(args['config_path'], 'r') as f:
+        config = json.load(f)
+    config['AtomTemplate_n'] = len(pd.read_csv('%s/atom_templates.csv' % args['data_dir']))
+    config['BondTemplate_n'] = len(pd.read_csv('%s/bond_templates.csv' % args['data_dir']))
+    args['AtomTemplate_n'] = config['AtomTemplate_n']
+    args['BondTemplate_n'] = config['BondTemplate_n']
+    config['in_node_feats'] = args['node_featurizer'].feat_size()
+    config['in_edge_feats'] = args['edge_featurizer'].feat_size()
+    config['GRA'] = args['GRA']
+    return config
 
 def mkdir_p(path):
     try:
@@ -26,77 +45,86 @@ def mkdir_p(path):
         else:
             raise
 
-def split_dataset(args, dataset):
-    return Subset(dataset, dataset.train_ids), Subset(dataset, dataset.val_ids), Subset(dataset, dataset.test_ids)
+def load_dataloader(args):
+    if args['mode'] == 'train':
+        dataset = USPTODataset(args, 
+                            smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),
+                            node_featurizer=args['node_featurizer'],
+                            edge_featurizer=args['edge_featurizer'])
 
-def get_configure():
-    with open('../data/config.json', 'r') as f:
-        config = json.load(f)
-    return config
+        train_set, val_set, test_set = Subset(dataset, dataset.train_ids), Subset(dataset, dataset.val_ids), Subset(dataset, dataset.test_ids)
 
-def collate_atom_labels(graphs, edit_atoms, templates):
-    labels = []
-    for i, g in enumerate(graphs):
-        template = templates[i]
-        edit_atom = edit_atoms[i]
-        if len(edit_atom) == 1:
-            edit_atom = edit_atom[0]
-            if type(edit_atom) == type(1):
-                for node in g.nodes():
-                    if int(node) == edit_atom and template!= 0:
-                        labels.append(template)
-                    else:
-                        labels.append(0)
-            else:
-                labels += [0]*g.num_nodes()
+        train_loader = DataLoader(dataset=train_set, batch_size=args['batch_size'], shuffle=True,
+                                  collate_fn=collate_molgraphs, num_workers=args['num_workers'])
+        val_loader = DataLoader(dataset=val_set, batch_size=args['batch_size'],
+                                collate_fn=collate_molgraphs, num_workers=args['num_workers'])
+        test_loader = DataLoader(dataset=test_set, batch_size=args['batch_size'],
+                                 collate_fn=collate_molgraphs, num_workers=args['num_workers'])
+        return train_loader, val_loader, test_loader
+    else:
+        test_set = USPTOTestDataset(args, 
+                            smiles_to_graph=partial(smiles_to_bigraph, add_self_loop=True),
+                            node_featurizer=args['node_featurizer'],
+                            edge_featurizer=args['edge_featurizer'])
+        test_loader = DataLoader(dataset=test_set, batch_size=args['batch_size'],
+                                 collate_fn=collate_molgraphs_test, num_workers=args['num_workers'])
+    return test_loader
+
+def load_model(args):
+    exp_config = get_configure(args)
+    model = LocalRetro(
+        node_in_feats=exp_config['in_node_feats'],
+        edge_in_feats=exp_config['in_edge_feats'],
+        node_out_feats=exp_config['node_out_feats'],
+        edge_hidden_feats=exp_config['edge_hidden_feats'],
+        num_step_message_passing=exp_config['num_step_message_passing'],
+        attention_heads = exp_config['attention_heads'],
+        attention_layers = exp_config['attention_layers'],
+        AtomTemplate_n = exp_config['AtomTemplate_n'],
+        BondTemplate_n = exp_config['BondTemplate_n'],
+        GRA = exp_config['GRA'])
+    model = model.to(args['device'])
+    print ('Parameters of loaded LocalRetro model:')
+    print (exp_config)
+
+    if args['mode'] == 'train':
+        loss_criterion = nn.CrossEntropyLoss()
+        optimizer = Adam(model.parameters(), lr=args['learning_rate'], weight_decay=args['weight_decay'])
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=args['schedule_step'])
+        
+        if os.path.exists(args['model_path']):
+            user_answer = input('model.pth exists, want to (a) overlap (b) continue from checkpoint (c) make a new model? ')
+            if user_answer == 'a':
+                stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
+                print ('Overlap exsited model and training a new model...')
+            elif user_answer == 'b':
+                stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
+                stopper.load_checkpoint(model)
+                print ('Train from exsited model checkpoint...')
+            elif user_answer == 'c':
+                model_name = input('Enter new model name: ')
+                args['model_path'] = args['model_path'].replace('model.pth', '%s.pth' % model_name)
+                stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
+                print ('Training a new model %s' % model_name)
         else:
-            for node in g.nodes():
-                if int(node) in edit_atom and template!= 0:
-                    labels.append(template)
-                else:
-                    labels.append(0)
-    return torch.LongTensor(labels)
+            stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
+        return model, loss_criterion, optimizer, scheduler, stopper
+    
+    else:
+        model.load_state_dict(torch.load(args['model_path'])['model_state_dict'])
+        return model
 
-def collate_bond_labels(graphs, edit_atoms, templates):
-    labels = []
-    for i, g in enumerate(graphs):
-        g = g.remove_self_loop()
-        template = templates[i]
-        atom_pairs = g.adjacency_matrix().coalesce().indices().numpy().T
-        edit_atom = edit_atoms[i]
-        if len(edit_atom) == 1: # single edit
-            edit_atom = edit_atom[0]
-            if type(edit_atom) == type(1): # atom edit
-                labels += [0]*len(atom_pairs) 
-            elif type(edit_atom) == type((0,1)): # one bond edit
-                for ap in atom_pairs:
-                    ap = tuple(ap)
-                    if ap[0] == ap[1]:
-                        continue
-                    if ap == edit_atom:
-                        labels.append(template)
-                    else:
-                        labels.append(0)                    
-        else: # multi-bond edit
-            for ap in atom_pairs:
-                ap = tuple(ap)
-                if ap[0] == ap[1]:
-                    continue
-                if ap in edit_atom:
-                    labels.append(template)
-                else:
-                    labels.append(0)
-    return torch.LongTensor(labels)
-
+def flatten_list(t):
+    return torch.LongTensor([item for sublist in t for item in sublist])
+    
 def collate_molgraphs(data):
-    smiles, graphs, templates, edit_atoms = map(list, zip(*data))
+    smiles, graphs, atom_labels, bond_labels = map(list, zip(*data))
+    atom_labels = flatten_list(atom_labels)
+    bond_labels = flatten_list(bond_labels)
     bg = dgl.batch(graphs)
     bg.set_n_initializer(dgl.init.zero_initializer)
     bg.set_e_initializer(dgl.init.zero_initializer)
-    atom_labels = collate_atom_labels(graphs, edit_atoms, templates)
-    bond_labels = collate_bond_labels(graphs, edit_atoms, templates)
     return smiles, bg, atom_labels, bond_labels
-
 
 def collate_molgraphs_test(data):
     smiles, graphs, rxns = map(list, zip(*data))
@@ -104,20 +132,6 @@ def collate_molgraphs_test(data):
     bg.set_n_initializer(dgl.init.zero_initializer)
     bg.set_e_initializer(dgl.init.zero_initializer)
     return smiles, bg, rxns
-
-def load_LocalRetro(exp_configure):
-    model = LocalRetro(
-        node_in_feats=exp_configure['in_node_feats'],
-        edge_in_feats=exp_configure['in_edge_feats'],
-        node_out_feats=exp_configure['node_out_feats'],
-        edge_hidden_feats=exp_configure['edge_hidden_feats'],
-        num_step_message_passing=exp_configure['num_step_message_passing'],
-        use_GRA = exp_configure['use_GRA'],
-        attention_heads = exp_configure['attention_heads'],
-        ALRT_CLASS = exp_configure['ALRT_CLASS'],
-        BLRT_CLASS = exp_configure['BLRT_CLASS'])
-    return model
-
 
 def predict(args, model, bg):
     bg = bg.to(args['device'])

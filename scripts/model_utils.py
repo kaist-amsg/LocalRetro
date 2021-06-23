@@ -1,13 +1,10 @@
-# Code of multihead attention is modified from https://github.com/SamLynnEvans/Transformer
-
+# multi-head attention code modified from https://github.com/SamLynnEvans/Transformer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
 import math
-import copy
-
 import sklearn
 import dgl
 import dgllife
@@ -91,12 +88,41 @@ class MultiHeadAttention(nn.Module):
         output = output + x
         output = self.layer_norm(output)
         return scores, output.squeeze(-1)
-    
-class MSA(nn.Module):
-    def __init__(self, heads, dim, dropout = 0):
-        super(MSA, self).__init__()
-        self.att1 = MultiHeadAttention(heads, dim, dropout)
 
-    def forward(self, h, mask):
-        score, h = self.att1(h, mask)
-        return score, h 
+class PositionwiseFeedForward(nn.Module):
+    def __init__(self, d_in, dropout = 0.1):
+        super(PositionwiseFeedForward, self).__init__()
+        self.w_1 = nn.Linear(d_in, d_in*2) # position-wise
+        self.w_2 = nn.Linear(d_in*2, d_in) # position-wise
+        self.layer_norm = nn.LayerNorm(d_in, eps=1e-6)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        output = self.w_2(F.relu(self.w_1(x)))
+        output = self.dropout(output)
+        output = output + x
+        output = self.layer_norm(output)
+        return output 
+
+class MSA(nn.Module):
+    def __init__(self, d_model, heads, n_layers = 1, dropout = 0.1):
+        super(MSA, self).__init__()
+        self.n_layers = n_layers
+        self.att1 = MultiHeadAttention(heads, d_model, dropout)
+        if n_layers > 1:
+            att_stack = []
+            pff_stack = []
+            for _ in range(n_layers-1):
+                att_stack.append(MultiHeadAttention(heads, d_model, dropout))
+                pff_stack.append(PositionwiseFeedForward(d_model, dropout=dropout))
+            self.att_stack = nn.ModuleList(att_stack)
+            self.pff_stack = nn.ModuleList(pff_stack)
+        
+    def forward(self, x, mask):
+        if self.n_layers > 1:
+            for n in range(self.n_layers-1):
+                _, x = self.att_stack[n](x, mask)
+                x = self.pff_stack[n](x)
+        score, output = self.att1(x, mask)
+        
+        return score, output

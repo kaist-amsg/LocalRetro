@@ -242,71 +242,12 @@ def label_retro_edit_site(products, reactants, edit_num):
     
     else:
         return edit_atom
-
-def label_foward_edit_site(reactants, products, edit_num):
-    edit_num = [int(num) for num in edit_num]
-    rmol = Chem.MolFromSmiles(reactants)
-    pmol = Chem.MolFromSmiles(products)
     
-    ratom_map = {atom.GetAtomMapNum():atom.GetIdx() for atom in rmol.GetAtoms()}
-    patom_map = {atom.GetAtomMapNum():atom.GetIdx() for atom in pmol.GetAtoms()}
-    
-    connect_atom = []
-    used_atom = set()
-    form_bond = False
-    for a in edit_num:
-        for b in edit_num:
-            if a >= b:
-                continue
-            pbond = pmol.GetBondBetweenAtoms(patom_map[a], patom_map[b])
-            rbond = rmol.GetBondBetweenAtoms(ratom_map[a], ratom_map[b])
-            if check_bond_cut(pbond, rbond): # cut bond
-                form_bond = True
-                connect_atom += [a, b]
-                used_atom.update([a, b])
-    
-    edit_atom = []
-    lose_LG = False
-    for a in edit_num:
-        if a in used_atom:
-            continue
-        patom = pmol.GetAtomWithIdx(patom_map[a])
-        ratom = rmol.GetAtomWithIdx(ratom_map[a])
-        if check_atom_change(patom, ratom):
-            edit_atom.append(a)
-            lose_LG = True
-            
-    changed_bond = [] 
-    change_bond = False
-    for a in edit_num:
-        for b in edit_num:
-            if a >= b:
-                continue
-            pbond = pmol.GetBondBetweenAtoms(patom_map[a], patom_map[b])
-            rbond = rmol.GetBondBetweenAtoms(ratom_map[a], ratom_map[b])
-            if check_bond_change(pbond, rbond):
-                if a not in used_atom and b not in used_atom:
-                    changed_bond.append((a, b))
-                    change_bond = True
-                used_atom.update([a, b])
-         
-    if form_bond:
-        return connect_atom
-    
-    elif lose_LG:
-        return edit_atom
-    
-    else:
-        return changed_bond
-    
-def match_label(products, reactants, replacement_dict, edit_num, retro = True):
+def match_label(products, reactants, replacement_dict, edit_num):
     replacement_dict = {int(k): int(replacement_dict[k]) for k in replacement_dict.keys()} # atommap:tempmap
     atom_map_dict = {atom.GetAtomMapNum():atom.GetIdx() for atom in Chem.MolFromSmiles(products).GetAtoms()}
     atom_symbol_dict = {atom.GetAtomMapNum():atom.GetAtomicNum() for atom in Chem.MolFromSmiles(products).GetAtoms()}
-    if retro:
-        edit_sites = label_retro_edit_site(products, reactants, edit_num)
-    else:
-        edit_sites = label_foward_edit_site(products, reactants, edit_num)
+    edit_sites = label_retro_edit_site(products, reactants, edit_num)
         
     H_dict = defaultdict(dict)
     for atom in Chem.MolFromSmiles(products).GetAtoms():
