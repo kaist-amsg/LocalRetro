@@ -103,9 +103,9 @@ def load_model(args):
                 print ('Train from exsited model checkpoint...')
             elif user_answer == 'c':
                 model_name = input('Enter new model name: ')
-                args['model_path'] = args['model_path'].replace('model.pth', '%s.pth' % model_name)
+                args['model_path'] = args['model_path'].replace('%s.pth' % args['dataset'], '%s.pth' % model_name)
                 stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
-                print ('Training a new model %s' % model_name)
+                print ('Training a new model %s.pth' % model_name)
         else:
             stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
         return model, loss_criterion, optimizer, scheduler, stopper

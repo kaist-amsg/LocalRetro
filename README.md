@@ -26,7 +26,7 @@ pip install dgllife
 ```
 
 ## Publication
-Shuan Chen and Yousung Jung. Retrosynthesis Prediction by Learning the Local Chemical Reactivity with Nonlocal Attention, JACS Au 2021 (under review).
+Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, JACS Au 2021 (under review).
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
@@ -116,4 +116,4 @@ The exact and MaxFrag accuracy can be obtained by running the python notebook `T
 | G2Gs        | 61.0 | 81.3 | 86.0 | 88.7 |  /   |
 | GraphRetro  | **67.8** | 82.7 | 85.3 | 87.0 | 87.9 |
 | MEGAN | 60.7 | 82.0 | 87.5 | 91.6 | 95.3 |
-| LocalRetro  | 63.8 | **86.8** | **92.4** | **96.3** | **97.9** |
+| LocalRetro  | 63.9 | **86.8** | **92.4** | **96.3** | **97.9** |

@@ -78,6 +78,7 @@ def labeling_dataset(args, split, template_dicts, smiles2smarts, smiles2edit):
     products = []
     atom_labels = []
     bond_labels = []
+    masks = []
     success = 0
     for n, rxn in enumerate(rxns):
         product = rxn.split('>>')[1]
@@ -89,6 +90,7 @@ def labeling_dataset(args, split, template_dicts, smiles2smarts, smiles2edit):
                 products.append(product)
                 atom_labels.append(0)
                 bond_labels.append(0)
+                masks.append(0)
                 continue
             else:
                 replace_dict = matchwithtemp(sma_template, smiles2smarts[smi_template], result['replacement_dict']) 
@@ -106,15 +108,17 @@ def labeling_dataset(args, split, template_dicts, smiles2smarts, smiles2edit):
             products.append(product)
             atom_labels.append(0)
             bond_labels.append(0)
+            masks.append(0)
             continue
             
         if len(edit_sites) <= args['max_edit_n']:
             atom_sites, bond_sites = get_edit_site(product)
             try:
-                if local_template not in  atom_templates.keys() and local_template not in  bond_templates.keys():
+                if local_template not in atom_templates.keys() and local_template not in bond_templates.keys():
                     products.append(product)
                     atom_labels.append(0)
                     bond_labels.append(0)
+                    masks.append(0)
                 else:
                     atom_label = [0] * len(atom_sites)
                     bond_label = [0] * len(bond_sites)
@@ -126,11 +130,13 @@ def labeling_dataset(args, split, template_dicts, smiles2smarts, smiles2edit):
                     products.append(product)
                     atom_labels.append(atom_label)
                     bond_labels.append(bond_label)
+                    masks.append(1)
                     success += 1
             except Exception as e:
                 products.append(product)
                 atom_labels.append(0)
                 bond_labels.append(0)
+                masks.append(0)
                 continue
                 
             if n % 100 == 0:
@@ -142,14 +148,14 @@ def labeling_dataset(args, split, template_dicts, smiles2smarts, smiles2edit):
             bond_labels.append(0)
             
     print ('\nDerived tempaltes cover %.3f of %s data reactions' % ((success/len(rxns)), split))
-    df = pd.DataFrame({'Products': products, 'Atom_label': atom_labels, 'Bond_label': bond_labels, 'Reaction': rxns})
+    df = pd.DataFrame({'Reaction': rxns, 'Products': products, 'Atom_label': atom_labels, 'Bond_label': bond_labels, 'Mask': masks})
     df.to_csv('../data/%s/preprocessed_%s.csv' % (args['dataset'], split))
     return df
 
 def combine_preprocessed_data(train_pre, val_pre, test_pre, args):
-    train_valid = train_pre[train_pre['Atom_label'] != 0].reset_index()
-    val_valid = val_pre[val_pre['Atom_label'] != 0].reset_index()
-    test_valid = test_pre[test_pre['Atom_label'] != 0].reset_index()
+    train_valid = train_pre[train_pre['Mask'] != 0].reset_index()
+    val_valid = val_pre[val_pre['Mask'] != 0].reset_index()
+    test_valid = test_pre[test_pre['Mask'] != 0].reset_index()
     
     train_valid['Split'] = ['train'] * len(train_valid)
     val_valid['Split'] = ['val'] * len(val_valid)

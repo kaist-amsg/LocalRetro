@@ -587,9 +587,7 @@ def extract_from_reaction(reaction):
 
 
     try:
-        # Get fragments for reactants
         reactant_fragments, intra_only, dimer_only = get_fragments_for_changed_atoms(reactants, changed_atom_tags)
-        # Get fragments for products 
         product_fragments, _, _  = get_fragments_for_changed_atoms(products, changed_atom_tags)
 
     except ValueError as e:

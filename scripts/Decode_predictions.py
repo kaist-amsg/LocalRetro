@@ -12,6 +12,11 @@ from utils import mkdir_p
 
 from LocalTemplate.template_decoder import *
 
+def dearomatic(template):
+    for s in ['[c;', '[o;', '[n;', '[s;', '[c@']:
+        template = template.replace(s, s.upper())
+    return template
+
 def main(args):   
     atom_templates = pd.read_csv('../data/%s/atom_templates.csv' % args['dataset'])
     bond_templates = pd.read_csv('../data/%s/bond_templates.csv' % args['dataset'])
@@ -40,27 +45,40 @@ def main(args):
         for i in prediction.index:
             all_prediction = []
             class_prediction = []
+            rxn = prediction['Reaction'][i]
+            products = rxn.split('>>')[1]
+            idx_map = get_idx_map(products)
             for K_prediciton in prediction.columns:
                 if 'Edit' not in K_prediciton:
                     continue
-                rxn = prediction['Reaction'][i]
-                products = rxn.split('>>')[1]
-                true_reactants = demap(Chem.MolFromSmiles(rxn.split('>>')[0]))
-                true_reactants = '.'.join(sorted(true_reactants.split('.')))
                 edition = eval(prediction[K_prediciton][i])
                 edit_idx = edition[0]
                 template_class = edition[1]
                 if type(edit_idx) == type(0):
                     template = atom_templates[template_class]
+                    if len(template.split('>>')[0].split('.')) > 1:
+                        edit_idx = idx_map[edit_idx]
                 else:
                     template = bond_templates[template_class]
+                    edit_idx = tuple(edit_idx)
+                    if len(template.split('>>')[0].split('.')) > 1:
+                        edit_idx = (idx_map[edit_idx[0]], idx_map[edit_idx[1]])
+                        
                 template_idx = smarts2E[template]
                 H_change = smarts2H[template]
                 try:
                     pred_reactants, _, _ = apply_template(products, template, edit_idx, template_idx, H_change)
-                except:
+                except Exception as e:
+                    # print (e)
                     pred_reactants = []
-
+                    
+                if len(pred_reactants) == 0:
+                    try:
+                        template = dearomatic(template)
+                        pred_reactants, _, _ = apply_template(products, template, edit_idx, template_idx, H_change)
+                    except:
+                        pred_reactants = []
+                    
                 all_prediction += [p for p in pred_reactants if p not in all_prediction]
                 
                 if args['rxn_class_given']:
@@ -84,11 +102,9 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-k', '--top-k', default= 50, help='Number of top predictions')
     parser.add_argument('-gra', '--GRA', default= True, help='Model use GRA or not')
-    args['GRA'] = False if args['GRA'] == 'False' else True
     args = parser.parse_args().__dict__
+    args['GRA'] = False if args['GRA'] == 'False' else True
     mkdir_p('../outputs/decoded_prediction')
     mkdir_p('../outputs/decoded_prediction_class')
-    main(args)
-        
-        
-        
+    main(args) 
+    

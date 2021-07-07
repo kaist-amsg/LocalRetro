@@ -137,8 +137,8 @@ def sort_template(template, replace_dict):
             bond_temp = bond_temp.replace(atom, '')
         if len(bond_temp) == len(temp_atoms)-1 and len(atom_props) == 1 and len(temp_atoms) == 2:
             exhange_num = {}
-            product_ = product.replace(':%s' % atom_num[0], ':?%s' % atom_num[1])
-            product_ = product_.replace(':%s' % atom_num[1], ':?%s' % atom_num[0])
+            product_ = product.replace(':%s]' % atom_num[0], ':?%s]' % atom_num[1])
+            product_ = product_.replace(':%s]' % atom_num[1], ':?%s]' % atom_num[0])
             product_ = product_.replace('?', '')
             exhange_num[str(atom_num[0])] = str(atom_num[1])
             exhange_num[str(atom_num[1])] = str(atom_num[0])

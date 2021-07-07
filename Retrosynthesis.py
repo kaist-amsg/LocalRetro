@@ -13,7 +13,12 @@ from functools import partial
 
 from scripts.utils import init_featurizer, load_model, collate_molgraphs_test
 from scripts.get_edit import combined_edit
-from LocalTemplate.template_decoder import apply_template
+from LocalTemplate.template_decoder import get_idx_map, apply_template
+
+def dearomatic(template):
+    for s in ['[c;', '[o;', '[n;', '[s;', '[c@']:
+        template = template.replace(s, s.upper())
+    return template
 
 def predict(model, graph, device):
     bg = dgl.batch([graph])
@@ -63,6 +68,7 @@ def retrosnythesis(smiles, model, graph_function, device, atom_templates, bond_t
     predicted_reactants = [smiles]
     predicted_edition = [None]
     predicted_scores = [None]
+    idx_map = get_idx_map(smiles)
     for k, result in enumerate(results):
         edition = eval(str(result[0]))
         score = result[1]
@@ -70,12 +76,20 @@ def retrosnythesis(smiles, model, graph_function, device, atom_templates, bond_t
         template_class = edition[1]
         if type(edit_idx) == type(0):
             template = atom_templates[template_class]
+            if len(template.split('>>')[0].split('.')) > 1:
+                edit_idx = idx_map[edit_idx]
         else:
             template = bond_templates[template_class]
+            if len(template.split('>>')[0].split('.')) > 1:
+                edit_idx = (idx_map[edit_idx[0]], idx_map[edit_idx[1]])
+        
         template_idx = smarts2E[template]
         H_change = smarts2H[template]
         predictions, fit_templates, matched_idx_list = apply_template(smiles, template, edit_idx, template_idx, H_change)
-        
+        if len(predictions) == 0:
+                template = dearomatic(template)
+                predictions, fit_templates, matched_idx_list = apply_template(smiles, template, edit_idx, template_idx, H_change)
+                
         for reactant in predictions:
             if reactant not in predicted_reactants:
                 predicted_reactants.append(reactant)

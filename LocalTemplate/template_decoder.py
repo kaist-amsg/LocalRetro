@@ -10,57 +10,90 @@ from .template_includes_ring import include_ring_info
 
 RDLogger.DisableLog('rdApp.*')
 
-def match_edit_idx(prod_idx, temp_idx):
-    prod2temp = {}
-    if type(prod_idx) == type(0):
-        prod2temp[prod_idx] = temp_idx
+def match_edit_idx(pred_idx, temp_idx):
+    temp2pred = {}
+    if type(pred_idx) == type(0):
+        temp2pred[temp_idx] = pred_idx
     else:
-        for i, edit in enumerate(prod_idx):
+        for i, edit in enumerate(pred_idx):
             if type(edit) == type(0):
-                prod2temp[edit] = temp_idx[i]
+                temp2pred[temp_idx[i]] = edit
             else:
                 for j, e in enumerate(edit):
-                    prod2temp[e] = temp_idx[i][j]
-    return prod2temp
+                    temp2pred[temp_idx[i][j]] = e
+    return temp2pred
 
 def check_idx_match(mols):
     matched_idx = {}
     for mol in mols:
         for atom in mol.GetAtoms():
             if atom.HasProp('old_mapno'):
-                matched_idx[int(atom.GetProp('react_atom_idx'))] =  int(atom.GetProp('old_mapno'))
+                matched_idx[int(atom.GetProp('old_mapno'))] =  int(atom.GetProp('react_atom_idx'))
     return matched_idx
 
 def match_subkeys(dict1, dict2):
-    remained_check = len(dict1)
+    unchecked = len(dict1)
     for k in dict1.keys():
         if k not in dict2:
             return False
         if dict1[k] == dict2[k]:
-            remained_check -= 1
-    return remained_check == 0
+            unchecked -= 1
+    return unchecked == 0
 
-def get_H(mol, matched_idx):
-    atom_H = {}
+def get_H1(mol, matched_idx, H_change):
+    H_before = {}
+    H_after = {}
+    matched_idx_reverse = {v:k for k,v in matched_idx.items()}
     for atom in mol.GetAtoms():
         atom_idx = atom.GetIdx()
-        if atom_idx in matched_idx.keys():
-            atom_H[matched_idx[atom_idx]] = atom.GetNumImplicitHs() + atom.GetNumExplicitHs()
-    return atom_H
+        if atom_idx in matched_idx.values():
+            mapno = matched_idx_reverse[atom_idx]
+            atom_H = atom.GetNumImplicitHs() + atom.GetNumExplicitHs()
+            H_before[mapno] = atom_H
+            H_after[mapno] = atom_H + H_change[mapno]
+    return H_before, H_after, matched_idx_reverse
 
-def get_H_map(mol, temp, prod_idx, temp_idxs, H_change):
-    
+## If there are more than two products in the reaction
+def get_H2(mols, H_change):
+    H_before = {}
+    H_after = {}
+    for mol in mols:
+        for atom in mol.GetAtoms():
+            if atom.HasProp('old_mapno'):
+                mapno = int(atom.GetProp('old_mapno'))
+                try:
+                    atom_H = atom.GetNumImplicitHs() + atom.GetNumExplicitHs()
+                    H_before[mapno] = atom_H
+                    H_after[mapno] = atom_H + H_change[mapno]
+                except:
+                    atom.UpdatePropertyCache(strict = False)
+                    atom_H = atom.GetNumImplicitHs() + atom.GetNumExplicitHs()
+                    H_before[mapno] = atom_H - H_change[mapno]
+                    H_after[mapno] = atom_H
+                
+    return H_before, H_after
+
+def match_pred_idx(products, temp, prod_idx, temp_idxs):
+    mol = Chem.MolFromSmiles(products)
     matched_idx_list = []
+    matched_reactants_list = []
     for temp_idx in temp_idxs:
-        prod2temp = match_edit_idx(prod_idx, temp_idx)
-        reaction = rdChemReactions.ReactionFromSmarts(temp)
-        reactants = reaction.RunReactants([mol])
-        for i, reactant in enumerate(reactants):
-            matched_idx = check_idx_match(reactant)
-            if match_subkeys(prod2temp, matched_idx):
-                matched_idx_list.append(matched_idx)
-            
-    return matched_idx_list
+        try:
+            temp2pred = match_edit_idx(prod_idx, temp_idx)
+            reaction = rdChemReactions.ReactionFromSmarts(temp)
+            ms = [Chem.MolFromSmiles(p) for p in products.split('.')]
+            reactants = reaction.RunReactants(ms)
+            if len(reactants) == 0:
+                reactants = reaction.RunReactants(ms[::-1])
+            for i, reactant in enumerate(reactants):
+                matched_idx = check_idx_match(reactant)
+                if match_subkeys(temp2pred, matched_idx):
+                    matched_idx_list.append(matched_idx)
+                    matched_reactants_list.append(reactant)
+        except Exception as e:
+#             print (e)
+            pass
+    return matched_idx_list, matched_reactants_list
 
 def fix_smart(smarts, H_map):
     temp_atoms = re.findall(r"\[.*?]", smarts)
@@ -108,8 +141,7 @@ def get_stereo(mol):
 
 def demap(mol):
     fix_aromatic(mol)
-    for atom in mol.GetAtoms():
-        atom.SetAtomMapNum(0)
+    [atom.SetAtomMapNum(0) for atom in mol.GetAtoms()]
     smi = Chem.MolToSmiles(mol)
     return Chem.MolToSmiles(deradical(Chem.MolFromSmiles(smi)))
 
@@ -139,29 +171,47 @@ def select_right_reactant(matched_idx, reactants):
     right_reactants = list(set(right_reactants))
     return right_reactants
     
+def get_idx_map(products):
+    mol = Chem.MolFromSmiles(products)
+    for atom in mol.GetAtoms():
+        atom.SetAtomMapNum(atom.GetIdx())
+    smiles = Chem.MolToSmiles(mol)
+    num_map = {}
+    for i, s in enumerate(smiles.split('.')):
+        m = Chem.MolFromSmiles(s)
+        for atom in m.GetAtoms():
+            num_map[atom.GetAtomMapNum()] = atom.GetIdx()
+    return num_map
+
 def apply_template(products, template, edit_idx, temp_idx, H_change):
     mol = Chem.MolFromSmiles(products)
-    matched_idx_list = get_H_map(mol, template, edit_idx, temp_idx, H_change)
+    matched_idx_list, matched_reactants_list = match_pred_idx(products, template, edit_idx, temp_idx)
     fit_templates = []
     right_reactants = []
     right_matched_idx = []
-    for matched_idx in matched_idx_list:
-        H_before = get_H(mol, matched_idx)
-        H_after = {k: H_before[k] + change for k, change in H_change.items()}
-        if not H_before:
-            continue
-        try:
-            template = include_ring_info(products, template, edit_idx, temp_idx, matched_idx)
-        except Exception as e:
-            continue
+    for matched_idx, matched_reactants in zip(matched_idx_list, matched_reactants_list):
+        if len(template.split('>>')[0].split('.')) == 1:
+            H_before, H_after, matched_idx_reverse = get_H1(mol, matched_idx, H_change)
+            try:
+                template = include_ring_info(products, template, edit_idx, temp_idx, matched_idx_reverse)
+            except Exception as e:
+#                 print (e)
+                continue
+        else:
+            H_before, H_after = get_H2(matched_reactants, H_change)
             
+        if not H_before:
+            continue     
         fit_template = fix_temp(template, H_before, H_after)
-        fit_templates.append(fit_template)
-        right_matched_idx.append(matched_idx)
         reaction = rdChemReactions.ReactionFromSmarts(fit_template)
-        reactants = reaction.RunReactants([mol])
+        ms = [Chem.MolFromSmiles(p) for p in products.split('.')]
+        reactants = reaction.RunReactants(ms)
+        if len(reactants) == 0:
+            reactants = reaction.RunReactants(ms[::-1])
         right_reactant = select_right_reactant(matched_idx, reactants)
         if right_reactant:
+            fit_templates.append(fit_template)
+            right_matched_idx.append(matched_idx)
             right_reactants += right_reactant
             
     right_reactants = list(set(right_reactants))

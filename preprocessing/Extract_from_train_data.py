@@ -46,7 +46,6 @@ def fix_arom(mol):
 def destereo(template):
     return template.replace('@', '')
         
-
 def clean_smarts(sma):
     mol = fix_arom(Chem.MolFromSmarts(sma.replace(';', '')))
     smi = Chem.MolToSmiles(mol)
