@@ -26,10 +26,10 @@ pip install dgllife
 ```
 
 ## Publication
-Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, JACS Au 2021.
+Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, [JACS Au 2021](https://pubs.acs.org/doi/10.1021/jacsau.1c00246).
 
-## Code cleaning announcement (2021.08.17)
-### Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.Users can still use our model to perform retrosynthesis and reproduce the results by our pretrained model.
+## Code cleaning announcement (2021.09.16)
+### Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
