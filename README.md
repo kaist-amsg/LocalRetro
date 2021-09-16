@@ -26,7 +26,10 @@ pip install dgllife
 ```
 
 ## Publication
-Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, JACS Au 2021 (under review).
+Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, JACS Au 2021.
+
+## Code cleaning announcement (2021.08.17)
+### Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.Users can still use our model to perform retrosynthesis and reproduce the results by our pretrained model.
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
@@ -87,15 +90,6 @@ The decoded reactants will be saved at
 `LocalRetro/outputs/decoded_prediction/USPTO_50K.txt`<br>and 
 `LocalRetro/outputs/decoded_prediction_class/USPTO_50K.txt`<br>
 
-## Pretrained models and results
-For users to reproduce the results shown in paper and quick retrosynthesis, we shared the pretrained models and results on the GitHub Release in this repo.
-
-## Retrosynthesis on desired product
-For quick implementation of retrosynthesis prediction via our model, see `Retrosynthesis.ipynb` for quick start.
-
-## Reproduce the prediction accuracy in the paper
-The exact and MaxFrag accuracy can be obtained by running the python notebook `Top_K_accuracy.ipynb` with changing using GRA or given reaction class.
-
 #### Exact match accuracy (%) on USPTO-50K dataset without given reaction class 
 *AT = Augmented Transformer
 
@@ -117,3 +111,4 @@ The exact and MaxFrag accuracy can be obtained by running the python notebook `T
 | GraphRetro  | **67.8** | 82.7 | 85.3 | 87.0 | 87.9 |
 | MEGAN | 60.7 | 82.0 | 87.5 | 91.6 | 95.3 |
 | LocalRetro  | 63.9 | **86.8** | **92.4** | **96.3** | **97.9** |
+

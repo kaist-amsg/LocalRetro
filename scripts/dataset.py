@@ -8,6 +8,25 @@ import sklearn
 import dgl.backend as F
 from dgl.data.utils import save_graphs, load_graphs
 
+def canonicalize(product):
+    mol = Chem.MolFromSmiles(product)
+    index2mapnums = {}
+    for atom in mol.GetAtoms():
+        index2mapnums[atom.GetIdx()] = atom.GetAtomMapNum()
+
+    # canonicalize the product smiles
+    mol_cano = Chem.RWMol(mol)
+    [atom.SetAtomMapNum(0) for atom in mol_cano.GetAtoms()]
+    smi_cano = Chem.MolToSmiles(mol_cano)
+    mol_cano = Chem.MolFromSmiles(smi_cano)
+
+    matches = mol.GetSubstructMatches(mol_cano)
+    if matches:
+        for atom, mat in zip(mol_cano.GetAtoms(), matches[0]):
+            atom.SetAtomMapNum(index2mapnums[mat])
+        product = Chem.MolToSmiles(mol_cano, canonical=False)
+    return product
+
 class USPTODataset(object):
     def __init__(self, args, smiles_to_graph, node_featurizer, edge_featurizer, load=True, log_every=1000):
         df = pd.read_csv('%s/labeled_data.csv' % args['data_dir'])
@@ -45,7 +64,7 @@ class USPTOTestDataset(object):
     def __init__(self, args, smiles_to_graph, node_featurizer, edge_featurizer, load=True, log_every=1000):
         df = pd.read_csv('%s/raw_test.csv' % args['data_dir'])
         self.rxns = df['reactants>reagents>production'].tolist()
-        self.smiles = [rxn.split('>>')[-1] for rxn in self.rxns]
+        self.smiles = [canonicalize(rxn.split('>>')[-1]) for rxn in self.rxns]
         self.cache_file_path = '../data/saved_graphs/%s_test_dglgraph.bin' % args['dataset']
         self._pre_process(smiles_to_graph, node_featurizer, edge_featurizer, load, log_every)
 
