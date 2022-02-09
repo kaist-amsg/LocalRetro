@@ -30,11 +30,11 @@ Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local
 
 
 ## Code reuploading announcement (2022.02.09)
-### We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
-### The training takes around 100 minutes on NVIDIA GeForce RTX 3090
+We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
+The training takes around 100 minutes on NVIDIA GeForce RTX 3090
 
 ## Code cleaning announcement (2021.09.16)
-### Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
+Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
