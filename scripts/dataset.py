@@ -8,24 +8,14 @@ import sklearn
 import dgl.backend as F
 from dgl.data.utils import save_graphs, load_graphs
 
-def canonicalize(product):
-    mol = Chem.MolFromSmiles(product)
-    index2mapnums = {}
-    for atom in mol.GetAtoms():
-        index2mapnums[atom.GetIdx()] = atom.GetAtomMapNum()
-
-    # canonicalize the product smiles
-    mol_cano = Chem.RWMol(mol)
-    [atom.SetAtomMapNum(0) for atom in mol_cano.GetAtoms()]
-    smi_cano = Chem.MolToSmiles(mol_cano)
-    mol_cano = Chem.MolFromSmiles(smi_cano)
-
-    matches = mol.GetSubstructMatches(mol_cano)
-    if matches:
-        for atom, mat in zip(mol_cano.GetAtoms(), matches[0]):
-            atom.SetAtomMapNum(index2mapnums[mat])
-        product = Chem.MolToSmiles(mol_cano, canonical=False)
-    return product
+def canonicalize_rxn(rxn):
+    canonicalized_smiles = []
+    r, p = rxn.split('>>')
+    for s in [r, p]:
+        mol = Chem.MolFromSmiles(s)
+        [atom.SetAtomMapNum(0) for atom in mol.GetAtoms()]
+        canonicalized_smiles.append(Chem.MolToSmiles(mol))
+    return '>>'.join(canonicalized_smiles)
 
 class USPTODataset(object):
     def __init__(self, args, smiles_to_graph, node_featurizer, edge_featurizer, load=True, log_every=1000):
@@ -34,8 +24,8 @@ class USPTODataset(object):
         self.val_ids = df.index[df['Split'] == 'val'].values
         self.test_ids = df.index[df['Split'] == 'test'].values
         self.smiles = df['Products'].tolist()
-        self.atom_labels = [eval(t) for t in df['Atom_label']]
-        self.bond_labels = [eval(t) for t in df['Bond_label']]
+        self.masks = df['Mask'].tolist()
+        self.labels = [eval(t) for t in df['Labels']]
         self.cache_file_path = '../data/saved_graphs/%s_dglgraph.bin' % args['dataset']
         self._pre_process(smiles_to_graph, node_featurizer, edge_featurizer, load, log_every)
 
@@ -55,16 +45,17 @@ class USPTODataset(object):
             save_graphs(self.cache_file_path, self.graphs)
 
     def __getitem__(self, item):
-        return self.smiles[item], self.graphs[item], self.atom_labels[item], self.bond_labels[item]
+        return self.smiles[item], self.graphs[item], self.labels[item], self.masks[item]
 
     def __len__(self):
             return len(self.smiles)
         
 class USPTOTestDataset(object):
     def __init__(self, args, smiles_to_graph, node_featurizer, edge_featurizer, load=True, log_every=1000):
-        df = pd.read_csv('%s/raw_test.csv' % args['data_dir'])
+        df = pd.read_csv('../data/%s/raw_test.csv' % args['dataset'])
         self.rxns = df['reactants>reagents>production'].tolist()
-        self.smiles = [canonicalize(rxn.split('>>')[-1]) for rxn in self.rxns]
+        self.rxns = [canonicalize_rxn(rxn) for rxn in self.rxns]
+        self.smiles = [rxn.split('>>')[-1] for rxn in self.rxns]
         self.cache_file_path = '../data/saved_graphs/%s_test_dglgraph.bin' % args['dataset']
         self._pre_process(smiles_to_graph, node_featurizer, edge_featurizer, load, log_every)
 

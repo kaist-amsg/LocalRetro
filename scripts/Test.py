@@ -8,7 +8,7 @@ from utils import init_featurizer, mkdir_p, get_configure, load_model, load_data
 from get_edit import write_edits
 
 def main(args):
-    model_name = '%s.pth' % args['dataset'] if args['GRA'] else '%s_noGRA.pth' % args['dataset']
+    model_name = 'LocalRetro_%s.pth' % args['dataset']
     args['model_path'] = '../models/%s' % model_name
     args['config_path'] = '../data/configs/%s' % args['config']
     args['data_dir'] = '../data/%s' % args['dataset']
@@ -24,16 +24,14 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser('LocalRetro testing arguements')
-    parser.add_argument('-g', '--gpu', default='cuda:1', help='GPU device to use')
+    parser.add_argument('-g', '--gpu', default='cuda:0', help='GPU device to use')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-c', '--config', default='default_config.json', help='Configuration of model')
     parser.add_argument('-b', '--batch-size', default=16, help='Batch size of dataloader')
     parser.add_argument('-k', '--top_num', default=100, help='Num. of predictions to write')
     parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
-    parser.add_argument('-gra', '--GRA', default=True, help='Test the model trained with Global Reactivity attention or not')
     args = parser.parse_args().__dict__
     args['mode'] = 'test'
-    args['GRA'] = False if args['GRA'] == 'False' else True
     args['device'] = torch.device(args['gpu']) if torch.cuda.is_available() else torch.device('cpu')
     print ('Using device %s' % args['device'])
     main(args)

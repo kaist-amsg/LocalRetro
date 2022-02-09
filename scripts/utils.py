@@ -19,20 +19,25 @@ from models import LocalRetro
 from dataset import USPTODataset, USPTOTestDataset
 
 def init_featurizer(args):
-    args['node_featurizer'] = WeaveAtomFeaturizer()
+    atom_types = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe',
+             'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn', 'Ag', 'Pd', 'Co', 'Se', 'Ti',
+             'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In', 'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb',
+             'W', 'Ru', 'Nb', 'Re', 'Te', 'Rh', 'Ta', 'Tc', 'Ba', 'Bi', 'Hf', 'Mo', 'U', 'Sm', 'Os', 'Ir',
+             'Ce', 'Gd', 'Ga', 'Cs']
+    args['node_featurizer'] = WeaveAtomFeaturizer(atom_types = atom_types)
     args['edge_featurizer'] = CanonicalBondFeaturizer(self_loop=True)
     return args
 
 def get_configure(args):
     with open(args['config_path'], 'r') as f:
         config = json.load(f)
-    config['AtomTemplate_n'] = len(pd.read_csv('%s/atom_templates.csv' % args['data_dir']))
-    config['BondTemplate_n'] = len(pd.read_csv('%s/bond_templates.csv' % args['data_dir']))
-    args['AtomTemplate_n'] = config['AtomTemplate_n']
-    args['BondTemplate_n'] = config['BondTemplate_n']
+    global AtomTemplate_n, BondTemplate_n
+    AtomTemplate_n = len(pd.read_csv('%s/atom_templates.csv' % args['data_dir']))
+    BondTemplate_n = len(pd.read_csv('%s/bond_templates.csv' % args['data_dir']))
+    args['AtomTemplate_n'], config['AtomTemplate_n'] = AtomTemplate_n, AtomTemplate_n
+    args['BondTemplate_n'], config['BondTemplate_n'] = BondTemplate_n, BondTemplate_n
     config['in_node_feats'] = args['node_featurizer'].feat_size()
     config['in_edge_feats'] = args['edge_featurizer'].feat_size()
-    config['GRA'] = args['GRA']
     return config
 
 def mkdir_p(path):
@@ -81,19 +86,18 @@ def load_model(args):
         attention_heads = exp_config['attention_heads'],
         attention_layers = exp_config['attention_layers'],
         AtomTemplate_n = exp_config['AtomTemplate_n'],
-        BondTemplate_n = exp_config['BondTemplate_n'],
-        GRA = exp_config['GRA'])
+        BondTemplate_n = exp_config['BondTemplate_n'])
     model = model.to(args['device'])
-    print ('Parameters of loaded LocalRetro model:')
+    print ('Parameters of loaded LocalRetro:')
     print (exp_config)
 
     if args['mode'] == 'train':
-        loss_criterion = nn.CrossEntropyLoss()
+        loss_criterion = nn.CrossEntropyLoss(reduction = 'none')
         optimizer = Adam(model.parameters(), lr=args['learning_rate'], weight_decay=args['weight_decay'])
         scheduler = lr_scheduler.StepLR(optimizer, step_size=args['schedule_step'])
         
         if os.path.exists(args['model_path']):
-            user_answer = input('model.pth exists, want to (a) overlap (b) continue from checkpoint (c) make a new model? ')
+            user_answer = input('%s exists, want to (a) overlap (b) continue from checkpoint (c) make a new model?' % args['model_path'])
             if user_answer == 'a':
                 stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
                 print ('Overlap exsited model and training a new model...')
@@ -114,13 +118,32 @@ def load_model(args):
         model.load_state_dict(torch.load(args['model_path'])['model_state_dict'])
         return model
 
+def make_labels(graphs, labels, masks):
+    atom_labels = []
+    bond_labels = []
+    for g, label, m in zip(graphs, labels, masks):
+        n_atoms = g.number_of_nodes()
+        n_bonds = g.number_of_edges()
+        atom_label, bond_label = [0]*(n_atoms), [0]*(n_bonds-n_atoms)
+        if m == 1:
+            for l in label:
+                label_type = l[0]
+                label_idx = l[1]
+                label_template = l[2]
+                if label_type == 'a':
+                    atom_label[label_idx] = label_template
+                else:
+                    bond_label[label_idx] = label_template
+        atom_labels += atom_label
+        bond_labels += bond_label   
+    return torch.LongTensor(atom_labels), torch.LongTensor(bond_labels)
+
 def flatten_list(t):
     return torch.LongTensor([item for sublist in t for item in sublist])
-    
+
 def collate_molgraphs(data):
-    smiles, graphs, atom_labels, bond_labels = map(list, zip(*data))
-    atom_labels = flatten_list(atom_labels)
-    bond_labels = flatten_list(bond_labels)
+    smiles, graphs, labels, masks = map(list, zip(*data))
+    atom_labels, bond_labels = make_labels(graphs, labels, masks)
     bg = dgl.batch(graphs)
     bg.set_n_initializer(dgl.init.zero_initializer)
     bg.set_e_initializer(dgl.init.zero_initializer)

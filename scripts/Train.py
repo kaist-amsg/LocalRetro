@@ -16,13 +16,11 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
             continue
            
         atom_labels, bond_labels = atom_labels.to(args['device']), bond_labels.to(args['device'])
-        
         atom_logits, bond_logits, _ = predict(args, model, bg)
 
-        loss_a = loss_criterion(atom_logits, atom_labels).mean()
-        loss_b = loss_criterion(bond_logits, bond_labels).mean()
-        total_loss = loss_a + loss_b
-
+        loss_a = loss_criterion(atom_logits, atom_labels)
+        loss_b = loss_criterion(bond_logits, bond_labels)
+        total_loss = torch.cat([loss_a, loss_b]).mean()
         train_loss += total_loss.item()
         
         optimizer.zero_grad()      
@@ -31,7 +29,7 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
         optimizer.step()
                 
         if batch_id % args['print_every'] == 0:
-            print('\repoch %d/%d, batch %d/%d, atom loss %.4f, bond loss %.4f' % (epoch + 1, args['num_epochs'], batch_id + 1, len(data_loader), loss_a.item(), loss_b.item()), end='', flush=True)
+            print('\repoch %d/%d, batch %d/%d, loss %.4f' % (epoch + 1, args['num_epochs'], batch_id + 1, len(data_loader), total_loss), end='', flush=True)
 
     print('\nepoch %d/%d, training loss: %.4f' % (epoch + 1, args['num_epochs'], train_loss/batch_id))
 
@@ -45,16 +43,15 @@ def run_an_eval_epoch(args, model, data_loader, loss_criterion):
             atom_labels, bond_labels = atom_labels.to(args['device']), bond_labels.to(args['device'])
             atom_logits, bond_logits, _ = predict(args, model, bg)
             
-            loss_a = loss_criterion(atom_logits, atom_labels).mean()
-            loss_b = loss_criterion(bond_logits, bond_labels).mean()
-            total_loss = loss_a + loss_b
+            loss_a = loss_criterion(atom_logits, atom_labels)
+            loss_b = loss_criterion(bond_logits, bond_labels)
+            total_loss = torch.cat([loss_a, loss_b]).mean()
             val_loss += total_loss.item()
-        
     return val_loss/batch_id
 
 
 def main(args):
-    model_name = '%s.pth' % args['dataset'] if args['GRA'] else '%s_noGRA.pth' % args['dataset']
+    model_name = 'LocalRetro_%s.pth' % args['dataset']
     args['model_path'] = '../models/' + model_name
     args['config_path'] = '../data/configs/%s' % args['config']
     args['data_dir'] = '../data/%s' % args['dataset']
@@ -79,7 +76,7 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser('LocalRetro training arguements')
-    parser.add_argument('-g', '--gpu', default='cuda:1', help='GPU device to use')
+    parser.add_argument('-g', '--gpu', default='cuda:0', help='GPU device to use')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-c', '--config', default='default_config.json', help='Configuration of model')
     parser.add_argument('-b', '--batch-size', default=16, help='Batch size of dataloader')                             
@@ -91,10 +88,8 @@ if __name__ == '__main__':
     parser.add_argument('-ss', '--schedule_step', type=int, default=10, help='Step size of learning scheduler')
     parser.add_argument('-nw', '--num-workers', type=int, default=0, help='Number of processes for data loading')
     parser.add_argument('-pe', '--print-every', type=int, default=20, help='Print the training progress every X mini-batches')
-    parser.add_argument('-gra', '--GRA', default=True, help='Model trained with Global Reactivity attention or not')
     args = parser.parse_args().__dict__
     args['mode'] = 'train'
-    args['GRA'] = False if args['GRA'] == 'False' else True
     args['device'] = torch.device(args['gpu']) if torch.cuda.is_available() else torch.device('cpu')
     print ('Using device %s' % args['device'])
     main(args)
