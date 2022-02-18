@@ -19,9 +19,9 @@ Install pytorch with the cuda version that fits your device.<br>
 cd LocalRetro
 conda create -c conda-forge -n rdenv python=3.7 -y
 conda activate rdenv
-conda install pytorch cudatoolkit=10.2 -c pytorch -y
+conda install pytorch cudatoolkit=11.3 -c pytorch -y
 conda install -c conda-forge rdkit -y
-pip install dgl
+conda install -c dglteam dgl-cuda11.3 -y
 pip install dgllife
 ```
 
