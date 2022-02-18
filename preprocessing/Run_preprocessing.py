@@ -25,6 +25,32 @@ def get_edit_site_retro(smiles):
         b = [(atom.GetIdx(), other) for other in sorted(others)]
         B += b
     return A, B
+# Might be a bug????
+# For Bond break/change, the label idx is got from the index of B(which was sorted here). When make label for training, the index was used directly. however, the bond order
+# of a dgl graph(bond order is used by bond Index of rdkit mol.) might not be the same as the order B?
+
+
+"""
+def make_labels(graphs, labels, masks):
+    atom_labels = []
+    bond_labels = []
+    for g, label, m in zip(graphs, labels, masks):
+        n_atoms = g.number_of_nodes()
+        n_bonds = g.number_of_edges()
+        atom_label, bond_label = [0]*(n_atoms), [0]*(n_bonds-n_atoms)#remove self loop
+        if m == 1:
+            for l in label:
+                label_type = l[0]
+                label_idx = l[1]
+                label_template = l[2]
+                if label_type == 'a':
+                    atom_label[label_idx] = label_template
+                else:
+                    bond_label[label_idx] = label_template #!!!!!!here!!!!!!!!!!!!!!!!!!!!!!!!!!
+        atom_labels += atom_label
+        bond_labels += bond_label   
+    return torch.LongTensor(atom_labels), torch.LongTensor(bond_labels)
+"""
     
 def get_edit_site_forward(smiles):
     mol = Chem.MolFromSmiles(smiles)
