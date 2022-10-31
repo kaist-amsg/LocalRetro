@@ -79,7 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--gpu', default='cuda:0', help='GPU device to use')
     parser.add_argument('-d', '--dataset', default='USPTO_50K', help='Dataset to use')
     parser.add_argument('-c', '--config', default='default_config.json', help='Configuration of model')
-    parser.add_argument('-b', '--batch-size', default=16, help='Batch size of dataloader')                             
+    parser.add_argument('-b', '--batch-size', type=int, default=16, help='Batch size of dataloader')                             
     parser.add_argument('-n', '--num-epochs', type=int, default=50, help='Maximum number of epochs for training')
     parser.add_argument('-p', '--patience', type=int, default=5, help='Patience for early stopping')
     parser.add_argument('-cl', '--max-clip', type=int, default=20, help='Maximum number of gradient clip')
