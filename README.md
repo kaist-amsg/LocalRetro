@@ -25,16 +25,22 @@ pip install dgl
 pip install dgllife
 ```
 
+## Update 
+
+### 2023.07.10 update
+To address the issue raised from the coommnuty, the function `get_atom_pair` in `model_utils.py` is updated. Also, we change the activation function from ReLU to GeLU and recalculate the accuracy using both stereo-aware and stereo-unaware metrics, showing at the bottom of README.md.
+
+### 2022.02.09 update
+We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
+The training takes around 100 minutes on NVIDIA GeForce RTX 3090
+
+### 2021.09.16 update
+Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
+
 ## Publication
 Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, [JACS Au 2021](https://pubs.acs.org/doi/10.1021/jacsau.1c00246).
 
 
-## Code reuploading announcement (2022.02.09)
-We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
-The training takes around 100 minutes on NVIDIA GeForce RTX 3090
-
-## Code cleaning announcement (2021.09.16)
-Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
 
 ## Usage
 ### [1] Download the raw data of USPTO-50K or USPTO-MIT dataset
@@ -95,24 +101,10 @@ The decoded reactants will be saved at
 `LocalRetro/outputs/decoded_prediction/LocalRetro_USPTO_50K.txt`<br>and 
 `LocalRetro/outputs/decoded_prediction_class/LocalRetro_USPTO_50K.txt`<br>
 
-#### Exact match accuracy (%) on USPTO-50K dataset without given reaction class 
-*AT = Augmented Transformer
+#### Exact match accuracy (%) on USPTO-50K dataset 
 
-| Method | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
-| -------- | -------- | -------- | -------- | -------- | -------- |
-| GLN         | 52.5 | 69.0 | 75.6 | 83.7 | 92.4 |
-| G2Gs        | 48.9 | 67.6 | 72.5 | 75.5 |  /   |
-| GraphRetro  | **53.7** | 68.3 | 72.2 | 75.5 | / |
-| AT     | 53.5 | 69.4 | 81.0 | 85.7 | / |
-| MEGAN | 48.1 | 70.7 | 78.4 | 86.1 | 93.2 |
-| LocalRetro  | 53.4 | **77.5** | **85.6** | **92.4** | **98.4** |
+| Stereo  | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
+| --------| ---- | ---- | ---- | ---- | ---- |
+| Unaware | 52.6 | 75.3 | 83.5 | 90.2 | 95.7 |
+|  Aware  | 54.0 | 77.3 | 85.7 | 92.5 | 98.4 |
 
-#### Exact match accuracy (%) on USPTO-50K dataset with given reaction class
-
-| Method | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
-| -------- | -------- | -------- | -------- | -------- | -------- |
-| GLN         | 64.2 | 79.1 | 85.2 | 90.0 | 93.2 |
-| G2Gs        | 61.0 | 81.3 | 86.0 | 88.7 |  /   |
-| GraphRetro  | 63.9 | 81.5 | 85.2 | 88.1 | / |
-| MEGAN | 60.7 | 82.0 | 87.5 | 91.6 | 95.3 |
-| LocalRetro  | **64.2** | **86.8** | **93.0** | **96.9** | **98.6** |

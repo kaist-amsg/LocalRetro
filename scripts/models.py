@@ -6,9 +6,9 @@ import dgl
 import dgllife
 from dgllife.model import MPNNGNN
 
-from model_utils import pair_atom_feats, unbatch_mask, unbatch_feats, Global_Reactivity_Attention
+from model_utils import pair_atom_feats, unbatch_mask, unbatch_feats, Global_Reactivity_Attention, GELU
 
-class LocalRetro(nn.Module):
+class LocalRetro_model(nn.Module):
     def __init__(self,
                  node_in_feats,
                  edge_in_feats,
@@ -19,8 +19,9 @@ class LocalRetro(nn.Module):
                  attention_layers,
                  AtomTemplate_n, 
                  BondTemplate_n):
-        super(LocalRetro, self).__init__()
+        super(LocalRetro_model, self).__init__()
                 
+        self.activation = GELU()
         self.mpnn = MPNNGNN(node_in_feats=node_in_feats,
                            node_out_feats=node_out_feats,
                            edge_in_feats=edge_in_feats,
@@ -33,12 +34,12 @@ class LocalRetro(nn.Module):
         
         self.atom_linear =  nn.Sequential(
                             nn.Linear(node_out_feats, node_out_feats), 
-                            nn.ReLU(), 
+                            self.activation, 
                             nn.Dropout(0.2),
                             nn.Linear(node_out_feats, AtomTemplate_n+1))
         self.bond_linear =  nn.Sequential(
                             nn.Linear(node_out_feats, node_out_feats), 
-                            nn.ReLU(), 
+                            self.activation,
                             nn.Dropout(0.2),
                             nn.Linear(node_out_feats, BondTemplate_n+1))
 

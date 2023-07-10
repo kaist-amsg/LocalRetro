@@ -24,29 +24,32 @@ def get_isomers(smi):
 def get_MaxFrag(smiles):
     return max(smiles.split('.'), key=len)
             
-def isomer_match(preds, reac):
-    reac_isomers = get_isomers(reac)
+def isomer_match(preds, true):
+    true_isomers = get_isomers(true)
     for k, pred in enumerate(preds):
         try:
             pred_isomers = get_isomers(pred)
-            if set(pred_isomers).issubset(set(reac_isomers)) or set(reac_isomers).issubset(set(pred_isomers)):
+            if set(pred_isomers).issubset(set(true_isomers)) or set(true_isomers).issubset(set(pred_isomers)):
                 return k+1
         except Exception as e:
             pass
     return -1
     
-def get_edit_site(mol):
+def exact_match(preds, true):
+    for k, pred in enumerate(preds):
+        try:
+            if pred == true:
+                return k+1
+        except Exception as e:
+            pass
+    return -1
+
+def get_edit_site(mol): # the function in Run_preprocessing.py
     A = [a for a in range(mol.GetNumAtoms())]
     B = []
-    for atom in mol.GetAtoms():
-        others = []
-        bonds = atom.GetBonds()
-        for bond in bonds:
-            atoms = [bond.GetBeginAtom().GetIdx(), bond.GetEndAtom().GetIdx()]
-            other = [a for a in atoms if a != atom.GetIdx()][0]
-            others.append(other)
-        b = [(atom.GetIdx(), other) for other in sorted(others)]
-        B += b
+    for bond in mol.GetBonds():
+        u, v = bond.GetBeginAtom().GetIdx(), bond.GetEndAtom().GetIdx()
+        B += [(u, v), (v, u)]
     return A, B
 
 def get_idx_map(mol):

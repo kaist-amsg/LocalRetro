@@ -10,20 +10,13 @@ RDLogger.DisableLog('rdApp.*')
 sys.path.append('../')
 from Extract_from_train_data import build_template_extractor, get_reaction_template, get_full_template
     
-
-def get_edit_site_retro(smiles):
+def get_edit_site_retro(smiles): # the function in Run_preprocessing.py
     mol = Chem.MolFromSmiles(smiles)
     A = [a for a in range(mol.GetNumAtoms())]
     B = []
-    for atom in mol.GetAtoms():
-        others = []
-        bonds = atom.GetBonds()
-        for bond in bonds:
-            atoms = [bond.GetBeginAtom().GetIdx(), bond.GetEndAtom().GetIdx()]
-            other = [a for a in atoms if a != atom.GetIdx()][0]
-            others.append(other)
-        b = [(atom.GetIdx(), other) for other in sorted(others)]
-        B += b
+    for bond in mol.GetBonds():
+        u, v = bond.GetBeginAtom().GetIdx(), bond.GetEndAtom().GetIdx()
+        B += [(u, v), (v, u)]
     return A, B
     
 def get_edit_site_forward(smiles):

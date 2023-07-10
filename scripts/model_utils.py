@@ -10,10 +10,8 @@ import dgllife
 
 def pair_atom_feats(g, node_feats):
     sg = g.remove_self_loop() # in case g includes self-loop
-    atom_pair_list = torch.transpose(sg.adjacency_matrix().coalesce().indices(), 0, 1)
-    atom_pair_idx1 = atom_pair_list[:,0]
-    atom_pair_idx2 = atom_pair_list[:,1]
-    atom_pair_feats = torch.cat((node_feats[atom_pair_idx1], node_feats[atom_pair_idx2]), dim = 1)
+    atom_idx1, atom_idx2 = sg.edges()
+    atom_pair_feats = torch.cat((node_feats[atom_idx1.long()], node_feats[atom_idx2.long()]), dim = 1)
     return atom_pair_feats
 
 def unbatch_mask(bg, atom_feats, bond_feats):
@@ -89,12 +87,16 @@ class MultiHeadAttention(nn.Module):
         output = self.layer_norm(output)
         return scores, output.squeeze(-1)
     
+class GELU(nn.Module):
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(math.sqrt(2/math.pi) * (x + 0.044715 * torch.pow(x, 3)))) 
+    
 class FeedForward(nn.Module):
     def __init__(self, d_model, dropout = 0.1):
         super(FeedForward, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(d_model, d_model*2),
-            nn.ReLU(),
+            GELU(),
             nn.Linear(d_model*2, d_model),
             nn.Dropout(dropout)
         )

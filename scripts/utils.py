@@ -15,7 +15,7 @@ from torch.optim import Adam, lr_scheduler
 from dgl.data.utils import Subset
 from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer, smiles_to_bigraph, EarlyStopping
 
-from models import LocalRetro
+from models import LocalRetro_model
 from dataset import USPTODataset, USPTOTestDataset
 
 def init_featurizer(args):
@@ -77,7 +77,7 @@ def load_dataloader(args):
 
 def load_model(args):
     exp_config = get_configure(args)
-    model = LocalRetro(
+    model = LocalRetro_model(
         node_in_feats=exp_config['in_node_feats'],
         edge_in_feats=exp_config['in_edge_feats'],
         node_out_feats=exp_config['node_out_feats'],
