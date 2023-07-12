@@ -115,7 +115,7 @@ def load_model(args):
         return model, loss_criterion, optimizer, scheduler, stopper
     
     else:
-        model.load_state_dict(torch.load(args['model_path'])['model_state_dict'])
+        model.load_state_dict(torch.load(args['model_path'], map_location=args['device'])['model_state_dict'])
         return model
 
 def make_labels(graphs, labels, masks):

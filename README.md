@@ -28,7 +28,13 @@ pip install dgllife
 ## Update 
 
 ### 2023.07.10 update
-To address the issue raised from the coommnuty, the function `get_atom_pair` in `model_utils.py` is updated. Also, we change the activation function from ReLU to GeLU and recalculate the accuracy using both stereo-aware and stereo-unaware metrics, showing at the bottom of README.md.
+To address the issue raised from the coommnuty (see also [#15](https://github.com/kaist-amsg/LocalRetro/issues/15))., the function `get_atom_pair` in `model_utils.py` is updated. 
+
+Also, we change the activation function from ReLU to GeLU and recalculate the accuracy using both *stereo-aware* and *stereo-unaware* metrics, showing at the bottom of README.md (see [#12](https://github.com/kaist-amsg/LocalRetro/issues/12)).
+
+For example, following problem (reaction #270 in test set) is an ester hydrolysis reaction, which has nothing to do with the single bond highlighed in red but somehow changed in the ground truth. The prediction of this retrosynthesis is identified as correct by the *stereo-aware* metric but wrong by the *stereo-unaware* metric.
+
+![](https://hackmd.io/_uploads/rJPY99iFh.png)
 
 ### 2022.02.09 update
 We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.

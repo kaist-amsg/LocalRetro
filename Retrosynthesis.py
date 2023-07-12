@@ -54,7 +54,9 @@ class LocalRetro():
         
         self.graph_function = lambda s: smiles_to_graph(s, node_featurizer = node_featurizer, edge_featurizer = edge_featurizer, canonical_atom_order = False)
         self.atom_templates, self.bond_templates, self.template_infos = load_templates(args)
-        self.device = args['device']
+        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = args['device']
         self.model = load_model(args)
         self.model.eval()
         
