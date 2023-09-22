@@ -146,10 +146,11 @@ def export_template(derived_templates, args):
         sorted_tuples = sorted(local_templates.items(), key=lambda item: item[1])
         c = 1
         for t in sorted_tuples:
-            templates.append(t[0])
-            template_freq.append(t[1])
-            template_class.append(c)
-            c += 1
+            if t[1] >= args['min_template_n']:
+                templates.append(t[0])
+                template_freq.append(t[1])
+                template_class.append(c)
+                c += 1
         template_dict = {templates[i]:i+1  for i in range(len(templates)) }
         template_df = pd.DataFrame({'Template' : templates, 'Frequency' : template_freq, 'Class': template_class})
 
@@ -163,6 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--retro', default=True,  help='Retrosyntheis or forward synthesis (True for retrosnythesis)')
     parser.add_argument('-v', '--verbose', default=False,  help='Verbose during template extraction')
     parser.add_argument('-stereo', '--use-stereo', default=True,  help='Use stereo info in template extraction')
+    parser.add_argument('-min', '--min-template-n', type=int, default=1,  help='Minimum of template frequency')
     args = parser.parse_args().__dict__
     args['output_dir'] = '../data/%s' % args['dataset']
     mkdir_p(args['output_dir'])
