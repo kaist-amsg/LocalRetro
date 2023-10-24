@@ -35,7 +35,7 @@ class LocalRetro_model(nn.Module):
         
         self.linearB = nn.Linear(node_out_feats*2, node_out_feats)
 
-        self.att = Global_Reactivity_Attention(node_out_feats, attention_heads, attention_layers)
+        self.att = Global_Reactivity_Attention(node_out_feats, attention_heads, attention_layers, activation=self.activation)
         
         self.atom_linear =  nn.Sequential(
                             nn.Linear(node_out_feats, node_out_feats), 

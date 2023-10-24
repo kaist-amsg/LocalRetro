@@ -92,11 +92,11 @@ class GELU(nn.Module):
         return 0.5 * x * (1 + torch.tanh(math.sqrt(2/math.pi) * (x + 0.044715 * torch.pow(x, 3)))) 
     
 class FeedForward(nn.Module):
-    def __init__(self, d_model, dropout = 0.1):
+    def __init__(self, d_model, activation=GELU(), dropout = 0.1):
         super(FeedForward, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(d_model, d_model*2),
-            GELU(),
+            activation,
             nn.Linear(d_model*2, d_model),
             nn.Dropout(dropout)
         )
@@ -107,14 +107,14 @@ class FeedForward(nn.Module):
         return self.layer_norm(x + output)
 
 class Global_Reactivity_Attention(nn.Module):
-    def __init__(self, d_model, heads, n_layers = 1, dropout = 0.1):
+    def __init__(self, d_model, heads, n_layers = 1, dropout = 0.1, activation=GELU()):
         super(Global_Reactivity_Attention, self).__init__()
         self.n_layers = n_layers
         att_stack = []
         pff_stack = []
         for _ in range(n_layers):
             att_stack.append(MultiHeadAttention(heads, d_model, dropout))
-            pff_stack.append(FeedForward(d_model, dropout))
+            pff_stack.append(FeedForward(d_model, activation, dropout))
         self.att_stack = nn.ModuleList(att_stack)
         self.pff_stack = nn.ModuleList(pff_stack)
         
