@@ -18,10 +18,15 @@ class LocalRetro_model(nn.Module):
                  attention_heads,
                  attention_layers,
                  AtomTemplate_n, 
-                 BondTemplate_n):
+                 BondTemplate_n,
+                 activation = 'gelu'):
         super(LocalRetro_model, self).__init__()
                 
-        self.activation = GELU()
+        if activation in ['GELU', 'gelu']:
+            self.activation = GELU()
+        elif activation in ['ReLU', 'relu']:
+            self.activation = nn.ReLU()
+            
         self.mpnn = MPNNGNN(node_in_feats=node_in_feats,
                            node_out_feats=node_out_feats,
                            edge_in_feats=edge_in_feats,

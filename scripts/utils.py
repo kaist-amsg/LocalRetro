@@ -86,7 +86,9 @@ def load_model(args):
         attention_heads = exp_config['attention_heads'],
         attention_layers = exp_config['attention_layers'],
         AtomTemplate_n = exp_config['AtomTemplate_n'],
-        BondTemplate_n = exp_config['BondTemplate_n'])
+        BondTemplate_n = exp_config['BondTemplate_n'],
+        activation = exp_config['activation']
+    )
     model = model.to(args['device'])
     print ('Parameters of loaded LocalRetro:')
     print (exp_config)

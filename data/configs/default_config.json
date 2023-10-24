@@ -4,5 +4,6 @@
   "batch_size": 16,
   "edge_hidden_feats": 64,
   "node_out_feats": 320,
-  "num_step_message_passing": 6
+  "num_step_message_passing": 6,
+  "activation": "gelu"
 }
