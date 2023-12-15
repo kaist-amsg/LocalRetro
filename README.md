@@ -4,14 +4,14 @@ Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Y
 ## Announcements 
 ### 2023.12.15 update
 
-After reading several papers claiming higher accuracy than LocalRetro using LocalRetro as backbones, I realized training LocalRetro with more epochs and average the models can actually get higher top-1, 3, 5 accuracy (without ANY change in model architecture). Therefore, I trained the model and updated the checkpoints.
+After reading several papers claiming higher accuracy than LocalRetro using LocalRetro as backbones, I realized training LocalRetro with more epochs and average the models can actually get higher top-1, 3, 5 accuracy (without ANY change in model architecture). Therefore, I trained the model and updated the checkpoints. Also, template mask was added to remain the high accuracy at high k.
 
 #### Exact match accuracy (%) on USPTO-50K dataset 
 
 | Stereo  | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
 | --------| ---- | ---- | ---- | ---- | ---- |
-| Unaware | 54.2 | 76.8 | 84.0 | 90.3 | 95.3 |
-|  Aware  | 55.8 | 78.9 | 86.2 | 92.7 | 97.9 |
+| Unaware | 54.2 | 76.8 | 84.0 | 90.3 | 95.5 |
+|  Aware  | 55.8 | 78.9 | 86.2 | 92.7 | 98.1 |
 
 ### 2023.07.10 update
 To address the issue raised from the coommnuty (see also [#15](https://github.com/kaist-amsg/LocalRetro/issues/15))., the function `get_atom_pair` in `model_utils.py` is updated. 

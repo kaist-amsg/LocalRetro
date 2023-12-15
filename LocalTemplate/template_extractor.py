@@ -13,7 +13,7 @@ from rdkit.Chem.rdchem import ChiralType
 
 from .template_extract_utils import *
     
-default_setting = {'verbose': False, 'use_stereo': False, 'use_symbol': False, 'max_unmap': 5, 'retro': True, 'remote': True, 'least_atom_num': 2}
+default_setting = {'verbose': False, 'use_stereo': True, 'use_symbol': True, 'max_unmap': 5, 'retro': True, 'remote': True, 'least_atom_num': 2}
 
 def set_extractor(setting):
     global VERBOSE,  USE_STEREOCHEMISTRY, USE_ATOM_SYMBOL, LEAST_ATOM_NUM, CONNECT_ATOMS, MAXIMUM_NUMBER_UNMAPPED_PRODUCT_ATOMS, RETRO, REMOTE

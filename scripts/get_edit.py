@@ -1,13 +1,13 @@
-import os
+import os, time
 import numpy as np
 
-import time
+from rdkit import Chem
+
 import torch
 import torch.nn as nn
+import dgl
 
 from utils import predict
-
-import dgl
 
 def get_id_template(a, class_n):
     class_n = class_n # no template
@@ -50,6 +50,32 @@ def get_bg_partition(bg):
         edges_sep.append(edges_sep[-1] + g.num_edges())
     return gs, nodes_sep[1:], edges_sep[1:]
 
+def get_edit_smarts_retro(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    A = [a.GetSymbol() for a in mol.GetAtoms()]
+    B = []
+    for bond in mol.GetBonds():
+        bond_smart = bond.GetSmarts()
+        if bond_smart == '':
+            if bond.GetIsAromatic():
+                bond_smart = '@'
+            else:
+                bond_smart = '-'
+        u, v = bond.GetBeginAtom().GetIdx(), bond.GetEndAtom().GetIdx()
+        B += ['%s%s%s' % (A[u], bond_smart, A[v]), '%s%s%s' % (A[v], bond_smart, A[u])]
+    return A, B
+
+def mask_prediction(smiles, atom_logits, bond_logits, site_templates):
+    atom_smarts, bond_smarts = get_edit_smarts_retro(smiles)
+    atom_mask, bond_mask = torch.zeros_like(atom_logits), torch.zeros_like(bond_logits)
+    for i, smarts in enumerate(atom_smarts):
+        if smarts in site_templates:
+            atom_mask[i][site_templates[smarts]] = 1
+    for i, smarts in enumerate(bond_smarts):
+        if smarts in site_templates:
+            bond_mask[i][site_templates[smarts]] = 1
+    return atom_logits*atom_mask, bond_logits*bond_mask
+    
 def write_edits(args, model, test_loader):
     model.eval()
     with open(args['result_path'], 'w') as f:
@@ -69,7 +95,10 @@ def write_edits(args, model, test_loader):
                 for single_id, (graph, end_node, end_edge) in enumerate(zip(graphs, nodes_sep, edges_sep)):
                     smiles = smiles_list[single_id]
                     test_id = (batch_id * args['batch_size']) + single_id
-                    pred_types, pred_sites, pred_scores = combined_edit(graph, batch_atom_logits[start_node:end_node], batch_bond_logits[start_edge:end_edge], args['top_num'])
+                    atom_logits = batch_atom_logits[start_node:end_node]
+                    bond_logits = batch_bond_logits[start_edge:end_edge]
+                    atom_logits, bond_logits = mask_prediction(smiles, atom_logits, bond_logits, args['site_templates'])
+                    pred_types, pred_sites, pred_scores = combined_edit(graph, atom_logits, bond_logits, args['top_num'])
                     start_node = end_node
                     start_edge = end_edge
                     f.write('%s\t%s\t%s\n' % (test_id, smiles, '\t'.join(['(%s, %s, %s, %.3f)' % (pred_types[i], pred_sites[i][0], pred_sites[i][1], pred_scores[i]) for i in range(args['top_num'])])))

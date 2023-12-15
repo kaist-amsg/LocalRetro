@@ -40,6 +40,11 @@ def get_configure(args):
     config['in_edge_feats'] = args['edge_featurizer'].feat_size()
     return config
 
+def get_site_templates(args):
+    with open('%s/site_template.json' % args['data_dir'], 'r') as f:
+        args['site_templates'] = json.load(f)
+    return args
+
 def mkdir_p(path):
     try:
         os.makedirs(path)

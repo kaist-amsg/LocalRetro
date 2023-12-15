@@ -4,7 +4,7 @@ import torch
 import sklearn
 import torch.nn as nn
 
-from utils import init_featurizer, mkdir_p, get_configure, load_model, load_dataloader, predict
+from utils import *
 from get_edit import write_edits
 
 def main(args):
@@ -17,6 +17,7 @@ def main(args):
     mkdir_p('../outputs/raw_prediction')
     
     args = init_featurizer(args)
+    args = get_site_templates(args)
     model = load_model(args)
     test_loader = load_dataloader(args)
     write_edits(args, model, test_loader)
