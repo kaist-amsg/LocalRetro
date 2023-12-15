@@ -4,7 +4,7 @@ import torch
 import sklearn
 import torch.nn as nn
 
-from utils import init_featurizer, mkdir_p, get_configure, load_model, load_dataloader, predict
+from utils import *
 
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
     model.train()
@@ -51,29 +51,29 @@ def run_an_eval_epoch(args, model, data_loader, loss_criterion):
 
 
 def main(args):
-    model_name = 'LocalRetro_%s.pth' % args['dataset']
-    args['model_path'] = '../models/' + model_name
+    args['model_dir'] = '../models/%s/' % args['dataset']
+    mkdir_p(args['model_dir'])
+    args['model_path'] = args['model_dir'] + 'LocalRetro.pth'
     args['config_path'] = '../data/configs/%s' % args['config']
     args['data_dir'] = '../data/%s' % args['dataset']
-    mkdir_p('../models')                          
+    
     args = init_featurizer(args)
-    model, loss_criterion, optimizer, scheduler, stopper = load_model(args)   
+    model, loss_criterion, optimizer, scheduler, stopper = load_model(args)
     train_loader, val_loader, test_loader = load_dataloader(args)
     for epoch in range(args['num_epochs']):
         run_a_train_epoch(args, epoch, model, train_loader, loss_criterion, optimizer)
         val_loss = run_an_eval_epoch(args, model, val_loader, loss_criterion)
-        early_stop = stopper.step(val_loss, model) 
-        scheduler.step()
         print('epoch %d/%d, validation loss: %.4f' %  (epoch + 1, args['num_epochs'], val_loss))
-        print('epoch %d/%d, Best loss: %.4f' % (epoch + 1, args['num_epochs'], stopper.best_score))
-        if early_stop:
-            print ('Early stopped!!')
-            break
-
+        stopper.filename = args['model_path'].replace('.pth', '_cycle%d.pth' % ((epoch//args['schedule_step'])+1))
+        early_stop = stopper.step(1/(epoch+1), model) # no early stop
+        scheduler.step()
+        
     stopper.load_checkpoint(model)
     test_loss = run_an_eval_epoch(args, model, test_loader, loss_criterion)
     print('test loss: %.4f' % test_loss)
-    
+    average_models(args)
+    return 
+
 if __name__ == '__main__':
     parser = ArgumentParser('LocalRetro training arguements')
     parser.add_argument('-g', '--gpu', default='cuda:0', help='GPU device to use')

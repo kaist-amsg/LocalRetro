@@ -1,6 +1,39 @@
 # LocalRetro
 Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Yousung Jung group at KAIST (contact: ysjn@kaist.ac.kr).
 
+## Announcements 
+### 2023.12.15 update
+
+After reading several papers claiming higher accuracy than LocalRetro using LocalRetro as backbones, I realized training LocalRetro with more epochs and average the models can actually get higher top-1, 3, 5 accuracy (without ANY change in model architecture). Therefore, I trained the model and updated the checkpoints.
+
+#### Exact match accuracy (%) on USPTO-50K dataset 
+
+| Stereo  | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
+| --------| ---- | ---- | ---- | ---- | ---- |
+| Unaware | 54.2 | 76.8 | 84.0 | 90.3 | 95.3 |
+|  Aware  | 55.8 | 78.9 | 86.2 | 92.7 | 97.9 |
+
+### 2023.07.10 update
+To address the issue raised from the coommnuty (see also [#15](https://github.com/kaist-amsg/LocalRetro/issues/15))., the function `get_atom_pair` in `model_utils.py` is updated. 
+
+Also, we change the activation function from ReLU to GeLU and recalculate the accuracy using both *stereo-aware* and *stereo-unaware* metrics, showing at the bottom of README.md (see [#12](https://github.com/kaist-amsg/LocalRetro/issues/12)).
+
+For example, following problem (reaction #270 in test set) is an ester hydrolysis reaction, which has nothing to do with the single bond highlighed in red but somehow changed in the ground truth. The prediction of this retrosynthesis is identified as correct by the *stereo-aware* metric but wrong by the *stereo-unaware* metric.
+
+![](https://hackmd.io/_uploads/rJPY99iFh.png)
+
+#### Exact match accuracy (%) on USPTO-50K dataset 
+
+| Stereo  | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
+| --------| ---- | ---- | ---- | ---- | ---- |
+| Unaware | 52.6 | 75.3 | 83.5 | 90.2 | 95.7 |
+|  Aware  | 54.0 | 77.3 | 85.7 | 92.5 | 98.4 |
+
+
+### 2022.02.09 update
+We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
+The training takes around 100 minutes on NVIDIA GeForce RTX 3090
+
 ## Developer
 Shuan Chen (contact: shuankaist@kaist.ac.kr)<br>
 
@@ -25,23 +58,6 @@ pip install dgl
 pip install dgllife
 ```
 
-## Update 
-
-### 2023.07.10 update
-To address the issue raised from the coommnuty (see also [#15](https://github.com/kaist-amsg/LocalRetro/issues/15))., the function `get_atom_pair` in `model_utils.py` is updated. 
-
-Also, we change the activation function from ReLU to GeLU and recalculate the accuracy using both *stereo-aware* and *stereo-unaware* metrics, showing at the bottom of README.md (see [#12](https://github.com/kaist-amsg/LocalRetro/issues/12)).
-
-For example, following problem (reaction #270 in test set) is an ester hydrolysis reaction, which has nothing to do with the single bond highlighed in red but somehow changed in the ground truth. The prediction of this retrosynthesis is identified as correct by the *stereo-aware* metric but wrong by the *stereo-unaware* metric.
-
-![](https://hackmd.io/_uploads/rJPY99iFh.png)
-
-### 2022.02.09 update
-We cleaned the code and made the template more simplied, which yields 658 local reaction templates for USPTO_50K dataset and 20,221 local reaction templates for USPTO_MIT dataset. Therefore we tested the top-k accuracy again and the results are updated at the bottom of README.md.
-The training takes around 100 minutes on NVIDIA GeForce RTX 3090
-
-### 2021.09.16 update
-Currently, we are cleaning up the codes, and the codes will be uploaded back afterwards.
 
 ## Publication
 Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, [JACS Au 2021](https://pubs.acs.org/doi/10.1021/jacsau.1c00246).
@@ -106,11 +122,3 @@ python Decode_predictions.py -d USPTO_50K
 The decoded reactants will be saved at 
 `LocalRetro/outputs/decoded_prediction/LocalRetro_USPTO_50K.txt`<br>and 
 `LocalRetro/outputs/decoded_prediction_class/LocalRetro_USPTO_50K.txt`<br>
-
-#### Exact match accuracy (%) on USPTO-50K dataset 
-
-| Stereo  | Top-1 | Top-3 | Top-5 | Top-10 | Top-50 |
-| --------| ---- | ---- | ---- | ---- | ---- |
-| Unaware | 52.6 | 75.3 | 83.5 | 90.2 | 95.7 |
-|  Aware  | 54.0 | 77.3 | 85.7 | 92.5 | 98.4 |
-

@@ -3,7 +3,7 @@ import sklearn
 import dgl
 import errno
 import json
-import os
+import os, glob
 import numpy as np
 import pandas as pd
 from functools import partial
@@ -49,6 +49,22 @@ def mkdir_p(path):
             print('Directory %s already exists.' % path)
         else:
             raise
+
+def average_models(args):
+    avg_model = None
+    model_paths = [path for path in glob.glob('%s*.pth' % args['model_dir'])]
+    print ('Averaging models...')
+    model_paths = sorted(model_paths, key= lambda x: int(x.split('.pth')[0].split('cycle')[1]))
+    for i, path in enumerate(model_paths):
+        model = torch.load(path)
+        model_weights = model['model_state_dict']
+        if i == 0:
+            avg_model = model_weights
+        else:
+            for (k, v) in avg_model.items():
+                avg_model[k].mul_(i).add_(model_weights[k]).div_(i + 1)
+    torch.save({'model_state_dict': avg_model}, '../models/LocalRetro_%s.pth' % args['dataset'])
+    return 
 
 def load_dataloader(args):
     if args['mode'] == 'train':
@@ -96,8 +112,8 @@ def load_model(args):
     if args['mode'] == 'train':
         loss_criterion = nn.CrossEntropyLoss(reduction = 'none')
         optimizer = Adam(model.parameters(), lr=args['learning_rate'], weight_decay=args['weight_decay'])
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=args['schedule_step'])
-        
+#         scheduler = lr_scheduler.StepLR(optimizer, step_size=args['schedule_step'])
+        scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args['schedule_step'], verbose=True)
         if os.path.exists(args['model_path']):
             user_answer = input('%s exists, want to (a) overlap (b) continue from checkpoint (c) make a new model?' % args['model_path'])
             if user_answer == 'a':
