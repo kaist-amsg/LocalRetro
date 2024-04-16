@@ -1,5 +1,5 @@
 # LocalRetro
-Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Yousung Jung group at KAIST (contact: ysjn@kaist.ac.kr).
+Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Yousung Jung group at KAIST (now moved to SNU, contact: yousung.jung@snu.ac.kr).
 
 ## Announcements 
 ### 2023.12.15 update
@@ -35,7 +35,7 @@ We cleaned the code and made the template more simplied, which yields 658 local 
 The training takes around 100 minutes on NVIDIA GeForce RTX 3090
 
 ## Developer
-Shuan Chen (contact: shuankaist@kaist.ac.kr)<br>
+Shuan Chen (contact: shuan.micc@gmail.com)<br>
 
 ## Requirements
 * Python (version >= 3.6) 
@@ -61,7 +61,6 @@ pip install dgllife
 
 ## Publication
 Shuan Chen and Yousung Jung. Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention, [JACS Au 2021](https://pubs.acs.org/doi/10.1021/jacsau.1c00246).
-
 
 
 ## Usage
