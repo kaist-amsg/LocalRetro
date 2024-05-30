@@ -3,7 +3,7 @@ Implementation of Retrosynthesis Prediction with LocalRetro developed by prof. Y
 
 ## Announcements
 ### 2024.05.30 update
-After careful consideration, we have decided to remove the open-source license and part of the codes from our project. This decision has been made due to several instances of the code being used without proper attribution, which goes against the spirit of open-source collaboration and respect for contributors' work.
+The open-source license and part of the codes are removed from our project on 2024.05.30.
 
 
 ## Developer
