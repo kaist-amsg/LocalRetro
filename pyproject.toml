@@ -1,0 +1,83 @@
+[tool.poetry]
+name = "localretro"
+version = "0.1.0"
+description = "Deep Retrosynthetic Reaction Prediction using Local Reactivity and Global Attention"
+authors = ["Shuan Chen <shuan.micc@gmail.com>"]
+readme = "README.md"
+packages = [
+    {include = "LocalTemplate"},
+    {include = "scripts"}
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.16.4"
+torch = "^1.0.0"
+rdkit-pypi = {version = "*", optional = true}
+dgl = "^0.5.2"
+dgllife = "^0.2.6"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+pytest-mock = "^3.10.0"
+
+[tool.poetry.scripts]
+test = "pytest"
+tests = "pytest"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=LocalTemplate",
+    "--cov=scripts", 
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-fail-under=80"
+]
+markers = [
+    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
+
+[tool.coverage.run]
+source = ["LocalTemplate", "scripts"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*"
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
